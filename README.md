@@ -2,7 +2,7 @@
 Android app for habit building
 - ✨wow!✨
 ## Functionality
-
+SQLite
 ## Installation
 On the playstore! (Key for version updates in google drive)
 
