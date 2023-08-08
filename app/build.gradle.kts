@@ -50,7 +50,17 @@ android {
 }
 
 dependencies {
+    //Room
+    implementation("androidx.room:room-runtime:2.5.2")
+    annotationProcessor("androidx.room:room-compiler:2.5.2")
 
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.6.0")
+
+    // Extend material icons
+    implementation("androidx.compose.material:material-icons-extended:1.4.3")
+
+    //default
     implementation("androidx.core:core-ktx:1.10.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
     implementation("androidx.activity:activity-compose:1.7.2")
