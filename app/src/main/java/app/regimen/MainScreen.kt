@@ -2,7 +2,10 @@ package app.regimen
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.NavigationBar
@@ -15,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -49,6 +53,11 @@ fun MainScreen() {
                     appBarState.actions?.invoke(this)
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { }) {
+                Icon(imageVector = Icons.Filled.Add, contentDescription = null)
+            }
         }
 
     ) {contentPadding ->
@@ -142,7 +151,7 @@ fun RowScope.AddItem(
 
             Icon(
                 imageVector = icon,
-                contentDescription = "${screen.title} Icon"
+                contentDescription = null
             )
         },
         selected = isSelected,
