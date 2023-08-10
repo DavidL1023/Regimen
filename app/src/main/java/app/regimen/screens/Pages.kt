@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Filter
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +26,7 @@ fun PagesScreen(
     onComposing: (AppBarState) -> Unit,
     navController: NavController
 ) {
+    // Dynamic toolbar
     LaunchedEffect(key1 = true) {
         onComposing(
             AppBarState(
@@ -31,13 +34,13 @@ fun PagesScreen(
                 actions = {
                     IconButton(onClick = { }) {
                         Icon(
-                            imageVector = Icons.Default.Favorite,
+                            imageVector = Icons.Default.Search,
                             contentDescription = null
                         )
                     }
                     IconButton(onClick = { }) {
                         Icon(
-                            imageVector = Icons.Default.Filter,
+                            imageVector = Icons.Default.MoreVert,
                             contentDescription = null
                         )
                     }
@@ -46,15 +49,5 @@ fun PagesScreen(
         )
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "PAGES",
-            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
-            fontWeight = FontWeight.Bold
-        )
-    }
+
 }

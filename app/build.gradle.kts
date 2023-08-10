@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "app.regimen"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "app.regimen"
         minSdk = 31
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -55,10 +55,10 @@ dependencies {
     annotationProcessor("androidx.room:room-compiler:2.5.2")
 
     // Navigation
-    implementation("androidx.navigation:navigation-compose:2.6.0")
+    implementation("androidx.navigation:navigation-compose:2.7.0")
 
     // Extend material icons
-    implementation("androidx.compose.material:material-icons-extended:1.4.3")
+    implementation("androidx.compose.material:material-icons-extended:1.5.0")
 
     //default
     implementation("androidx.core:core-ktx:1.10.1")
