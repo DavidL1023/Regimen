@@ -49,13 +49,6 @@ fun SettingsScreen(
     onComposing: (AppBarState) -> Unit,
     navController: NavController
 ) {
-    // Theme mode radio
-    val displayRadioOptions = listOf("Use device settings", "Dark mode", "Light mode")
-    val (selectedOption, onOptionSelected) = remember { mutableStateOf(displayRadioOptions[0]) }
-
-    // Passcode checked
-    var passcodeChecked by remember { mutableStateOf(true) }
-
     // Dynamic toolbar
     LaunchedEffect(key1 = true) {
         onComposing(
@@ -103,33 +96,8 @@ fun SettingsScreen(
             text = "Select app theme.",
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Column(Modifier.selectableGroup()) {
-            displayRadioOptions.forEach { text ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .selectable(
-                            selected = (text == selectedOption),
-                            onClick = { onOptionSelected(text) },
-                            role = Role.RadioButton
-                        )
-                        .padding(horizontal = 24.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = (text == selectedOption),
-                        onClick = null,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
-                }
-            }
-        }
+
+        ThemeRadio()
 
         // Password settings
         Text(
@@ -145,44 +113,89 @@ fun SettingsScreen(
             modifier = Modifier.padding(start = 16.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        // Enable or disable password
-        Row(
-            Modifier
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        )  {
-            Text(
-                text = "Enable Passcode",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(start = 16.dp)
-            )
 
-            Spacer(modifier = Modifier.weight(1f)) // Keep switch on the right side of screen
+        PasswordSwitch()
+        SetPasswordButton()
 
-            Switch(
-                checked = passcodeChecked,
-                onCheckedChange = { passcodeChecked = it },
-                modifier = Modifier.padding(end = 16.dp)
-            )
+    }
+}
+
+@Composable
+fun SetPasswordButton() {
+    Button(
+        onClick = {  },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp),
+    ) {
+        Icon(
+            Icons.Filled.Password,
+            contentDescription = "Favorite",
+            modifier = Modifier.size(ButtonDefaults.IconSize)
+        )
+        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+        Text(
+            text = "Set Passcode",
+        )
+    }
+}
+
+@Composable
+fun PasswordSwitch() {
+    var passcodeChecked by remember { mutableStateOf(true) }
+
+    Row(
+        Modifier
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    )  {
+        Text(
+            text = "Enable Passcode",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(start = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.weight(1f)) // Keep switch on the right side of screen
+
+        Switch(
+            checked = passcodeChecked,
+            onCheckedChange = { passcodeChecked = it },
+            modifier = Modifier.padding(end = 16.dp)
+        )
+    }
+}
+
+@Composable
+fun ThemeRadio() {
+    val displayRadioOptions = listOf("Use device settings", "Dark mode", "Light mode")
+    val (selectedOption, onOptionSelected) = remember { mutableStateOf(displayRadioOptions[0]) }
+
+    Column(Modifier.selectableGroup()) {
+        displayRadioOptions.forEach { text ->
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .selectable(
+                        selected = (text == selectedOption),
+                        onClick = { onOptionSelected(text) },
+                        role = Role.RadioButton
+                    )
+                    .padding(horizontal = 24.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(
+                    selected = (text == selectedOption),
+                    onClick = null,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+            }
         }
-        Button(
-            onClick = {  },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp),
-        ) {
-            Icon(
-                Icons.Filled.Password,
-                contentDescription = "Favorite",
-                modifier = Modifier.size(ButtonDefaults.IconSize)
-            )
-            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-            Text(
-                text = "Set Passcode",
-            )
-        }
-
-
     }
 }
 

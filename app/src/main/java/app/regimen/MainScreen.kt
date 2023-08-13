@@ -92,7 +92,7 @@ fun MainScreen() {
                 contentPadding
             )
         ) {
-            composable(BottomBarScreen.Home.route) {
+            composable(route = BottomBarScreen.Home.route) {
                 HomeScreen(
                     onComposing = {
                         appBarState = it
@@ -100,7 +100,7 @@ fun MainScreen() {
                     navController = navController
                 )
             }
-            composable(BottomBarScreen.Pages.route) {
+            composable(route = BottomBarScreen.Pages.route) {
                 PagesScreen(
                     onComposing = {
                         appBarState = it
@@ -108,7 +108,7 @@ fun MainScreen() {
                     navController = navController
                 )
             }
-            composable(BottomBarScreen.Groups.route) {
+            composable(route = BottomBarScreen.Groups.route) {
                 GroupsScreen(
                     onComposing = {
                         appBarState = it
@@ -116,7 +116,7 @@ fun MainScreen() {
                     navController = navController
                 )
             }
-            composable(BottomBarScreen.Settings.route) {
+            composable(route = BottomBarScreen.Settings.route) {
                 SettingsScreen(
                     onComposing = {
                         appBarState = it

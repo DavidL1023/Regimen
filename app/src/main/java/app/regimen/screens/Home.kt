@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.twotone.AirlineSeatLegroomNormal
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -58,10 +59,6 @@ fun HomeScreen(
     onComposing: (AppBarState) -> Unit,
     navController: NavController
 ) {
-    // Title states
-    var titleState by remember { mutableStateOf(0) }
-    val titles = listOf("All", "Recurring", "Single Time")
-
     // Dynamic toolbar
     LaunchedEffect(key1 = true) {
         onComposing(
@@ -83,17 +80,18 @@ fun HomeScreen(
     Column {
 
         // Horizontal scroll for calendar filter
-        ScrollBoxesSmooth()
+        CalendarFilterChips()
 
-        // Item filter
+        // Filter by reminder type
         FilterChips()
 
     }
 
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScrollBoxesSmooth() {
+private fun CalendarFilterChips() {
     // Smoothly scroll 100px on first composition
     val state = rememberScrollState()
     LaunchedEffect(Unit) { state.animateScrollTo(100) }
@@ -103,12 +101,18 @@ private fun ScrollBoxesSmooth() {
             .padding(horizontal = 20.dp)
             .horizontalScroll(state)
     ) {
-        repeat(10) {
+        var selected by remember { mutableStateOf(false) }
+        repeat(14) {
 
+            ElevatedFilterChip(
+                selected = selected,
+                onClick = { /*TODO*/ },
+                label = {
+                    Text("Thu")
+                    Text("12/$it")
+                }
+            )
 
-
-
-            Text("Item $it", modifier = Modifier.padding(2.dp))
         }
     }
 }
@@ -128,7 +132,7 @@ fun FilterChips() {
             label = { Text(text = "         All         ") },
             selected = allSelected,
             onClick = {
-                allSelected = !allSelected
+                allSelected = true
                 recurringSelected = false
                 singleTimeSelected = false
             }
@@ -145,7 +149,7 @@ fun FilterChips() {
                 )
             },
             onClick = {
-                recurringSelected = !recurringSelected
+                recurringSelected = true
                 allSelected = false
                 singleTimeSelected = false
             }
@@ -161,7 +165,7 @@ fun FilterChips() {
                 )
             },
             onClick = {
-                singleTimeSelected = !singleTimeSelected
+                singleTimeSelected = true
                 allSelected = false
                 recurringSelected = false
             }
