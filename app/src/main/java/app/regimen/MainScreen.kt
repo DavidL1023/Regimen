@@ -2,11 +2,16 @@ package app.regimen
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.NotificationAdd
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -40,7 +45,10 @@ fun MainScreen() {
         mutableStateOf(AppBarState())
     }
 
+    // Bottom nav bar destination tracker
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) },
@@ -55,8 +63,22 @@ fun MainScreen() {
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { }) {
-                Icon(imageVector = Icons.Filled.Add, contentDescription = null)
+            if (currentDestination != null) {
+                if (currentDestination.route != BottomBarScreen.Settings.route) {
+                    FloatingActionButton(
+                        onClick = {
+                            // Should be empty
+                        },
+                        shape = MaterialTheme.shapes.small.copy(CornerSize(percent = 50))
+                    ) {
+                        val fabIcon = getFabIconForDestination(currentDestination)
+                        val onClickAction = getFabOnClickActionForDestination(currentDestination)
+
+                        FloatingActionButton(onClick = onClickAction) {
+                            Icon(imageVector = fabIcon, contentDescription = null)
+                        }
+                    }
+                }
             }
         }
 
@@ -103,8 +125,6 @@ fun MainScreen() {
                 )
             }
         }
-
-
 
     }
 }
@@ -169,3 +189,36 @@ data class AppBarState(
     val title: String = "",
     val actions: (@Composable RowScope.() -> Unit)? = null
 )
+
+// Fab button functionality
+// Define a function to get the appropriate FAB icon based on the destination:
+private fun getFabIconForDestination(destination: NavDestination?): ImageVector {
+    return when (destination?.route) {
+        BottomBarScreen.Home.route -> Icons.Default.NotificationAdd
+        BottomBarScreen.Pages.route -> Icons.Default.Edit
+        BottomBarScreen.Groups.route -> Icons.Default.CreateNewFolder
+        else -> Icons.Filled.Add // Default icon
+    }
+}
+
+// Define a function to get the appropriate FAB onClick action based on the destination:
+private fun getFabOnClickActionForDestination(destination: NavDestination?): () -> Unit {
+    return when (destination?.route) {
+        BottomBarScreen.Home.route -> {
+            // Add your desired onClick action for the Home destination
+            {  }
+        }
+        BottomBarScreen.Pages.route -> {
+            // Add your desired onClick action for the Pages destination
+            {  }
+        }
+        BottomBarScreen.Groups.route -> {
+            // Add your desired onClick action for the Groups destination
+            {  }
+        }
+        else -> {
+            // Default onClick action
+            { }
+        }
+    }
+}

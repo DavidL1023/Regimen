@@ -3,15 +3,24 @@ package app.regimen.screens
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Password
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
@@ -28,6 +37,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.startActivity
 import androidx.navigation.NavController
@@ -54,29 +65,45 @@ fun SettingsScreen(
         )
     }
 
-
     // Settings column
-    Column {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
 
         // Bring user to android notification page
         Text(
-            text = "Set Notifications",
-            style = MaterialTheme.typography.titleSmall,
+            text = "Notifications",
+            style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(start = 16.dp)
+        )
+        Text(
+            text = "Set how you want to be notified.",
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.Normal
+            ),
+            modifier = Modifier.padding(start = 16.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         NotificationsButton()
 
         // Theme selection setting
+        Text(
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier
+                .padding(start = 16.dp),
+            text = "Visuals"
+        )
+        Text(
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.Normal
+            ),
+            modifier = Modifier
+                .padding(start = 16.dp),
+            text = "Select app theme.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Column(Modifier.selectableGroup()) {
-            Text(
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                text = "Select Theme"
-            )
-
             displayRadioOptions.forEach { text ->
                 Row(
                     Modifier
@@ -92,7 +119,8 @@ fun SettingsScreen(
                 ) {
                     RadioButton(
                         selected = (text == selectedOption),
-                        onClick = null
+                        onClick = null,
+                        modifier = Modifier.padding(start = 16.dp)
                     )
                     Text(
                         text = text,
@@ -105,9 +133,17 @@ fun SettingsScreen(
 
         // Password settings
         Text(
-            text = "Configure Security",
-            style = MaterialTheme.typography.titleSmall,
+            text = "Security",
+            style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(start = 16.dp)
+        )
+        Text(
+            text = "Choose how you want to secure your app.",
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.Normal
+            ),
+            modifier = Modifier.padding(start = 16.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         // Enable or disable password
         Row(
@@ -116,7 +152,7 @@ fun SettingsScreen(
             verticalAlignment = Alignment.CenterVertically
         )  {
             Text(
-                text = "Enable password",
+                text = "Enable Passcode",
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(start = 16.dp)
             )
@@ -129,6 +165,23 @@ fun SettingsScreen(
                 modifier = Modifier.padding(end = 16.dp)
             )
         }
+        Button(
+            onClick = {  },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp),
+        ) {
+            Icon(
+                Icons.Filled.Password,
+                contentDescription = "Favorite",
+                modifier = Modifier.size(ButtonDefaults.IconSize)
+            )
+            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+            Text(
+                text = "Set Passcode",
+            )
+        }
+
 
     }
 }
@@ -142,6 +195,12 @@ fun NotificationsButton() {
             .fillMaxWidth()
             .padding(16.dp),
     ) {
+        Icon(
+            Icons.Filled.Notifications,
+            contentDescription = "Favorite",
+            modifier = Modifier.size(ButtonDefaults.IconSize)
+        )
+        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
         Text(
             text = "Notifications",
         )
