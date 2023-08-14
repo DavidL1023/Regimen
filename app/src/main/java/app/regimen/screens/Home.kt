@@ -2,19 +2,26 @@ package app.regimen.screens
 
 import android.widget.ToggleButton
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cached
+import androidx.compose.material.icons.filled.CallMerge
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Filter
 import androidx.compose.material.icons.filled.MoreVert
@@ -24,6 +31,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.twotone.AirlineSeatLegroomNormal
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ElevatedFilterChip
@@ -33,17 +41,24 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SingleChoiceSegmentedButtonRowScope
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -52,6 +67,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import app.regimen.AppBarState
+import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,98 +93,124 @@ fun HomeScreen(
     }
 
     // Home column
-    Column {
+    Column (
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
 
         // Horizontal scroll for calendar filter
         CalendarFilterChips()
 
         // Filter by reminder type
-        FilterChips()
+        CategoryFilterSegmented()
 
     }
 
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CalendarFilterChips() {
-    // Smoothly scroll 100px on first composition
+    val selectedChipIndex = remember { mutableIntStateOf(0) }
     val state = rememberScrollState()
-    LaunchedEffect(Unit) { state.animateScrollTo(100) }
 
     Row(
         modifier = Modifier
-            .padding(horizontal = 20.dp)
-            .horizontalScroll(state)
+            .padding(horizontal = 24.dp)
+            .horizontalScroll(state),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        var selected by remember { mutableStateOf(false) }
-        repeat(14) {
+        for (index in 0 until 14) {
+            val isSelected = index == selectedChipIndex.intValue
 
-            ElevatedFilterChip(
-                selected = selected,
-                onClick = { /*TODO*/ },
-                label = {
-                    Text("Thu")
-                    Text("12/$it")
-                }
+            VerticalChip(
+                isSelected = isSelected,
+                onClick = { selectedChipIndex.intValue = index },
+                topText = "Thu",
+                bottomText = "$index"
             )
-
         }
     }
 }
 
+@Composable
+private fun VerticalChip(
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    topText: String,
+    bottomText: String
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp)) //allows ripple to match shape
+            .clickable(
+                onClick = onClick
+            )
+            .background(
+                color = if (isSelected) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.background,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .padding(8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = topText,
+                modifier = Modifier
+                    .padding(horizontal = 6.dp)
+                    .alpha(0.7f),
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+            Text(
+                text = bottomText,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+    }
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FilterChips() {
-    var allSelected by remember { mutableStateOf(true) }
-    var recurringSelected by remember { mutableStateOf(false) }
-    var singleTimeSelected by remember { mutableStateOf(false) }
+fun CategoryFilterSegmented() {
+    var selectedIndex by remember { mutableStateOf(0) }
+    val options = listOf("All", "Recurring", "Single Time")
+    val icons = listOf(
+        null,
+        Icons.Default.Cached,
+        Icons.Default.Today
+    )
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
+    SingleChoiceSegmentedButtonRow (
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
     ) {
-        FilterChip(
-            label = { Text(text = "         All         ") },
-            selected = allSelected,
-            onClick = {
-                allSelected = true
-                recurringSelected = false
-                singleTimeSelected = false
+        options.forEachIndexed { index, label ->
+            SegmentedButton(
+                shape = SegmentedButtonDefaults.shape(position = index, count = options.size),
+                onClick = { selectedIndex = index },
+                selected = index == selectedIndex,
+                icon = {
+
+                    SegmentedButtonDefaults.SegmentedButtonIcon(
+                        active = index == selectedIndex,
+                        inactiveContent = {
+                            icons[index]?.let {
+                                Icon(
+                                    imageVector = it,
+                                    contentDescription = null,
+                                    Modifier.size(SegmentedButtonDefaults.IconSize)
+                                )
+                            }
+                        }
+                    )
+
+                },
+            ) {
+                Text(label)
             }
-        )
-        FilterChip(
-            modifier = Modifier.padding(horizontal = 8.dp),
-            label = { Text(text = "Recurring") },
-            selected = recurringSelected,
-            leadingIcon = {
-                Icon(
-                    Icons.Default.Cached,
-                    contentDescription = null,
-                    modifier = Modifier.size(FilterChipDefaults.IconSize)
-                )
-            },
-            onClick = {
-                recurringSelected = true
-                allSelected = false
-                singleTimeSelected = false
-            }
-        )
-        FilterChip(
-            label = { Text(text = "Single Time") },
-            selected = singleTimeSelected,
-            leadingIcon = {
-                Icon(
-                    Icons.Filled.Today,
-                    contentDescription = null,
-                    modifier = Modifier.size(FilterChipDefaults.IconSize)
-                )
-            },
-            onClick = {
-                singleTimeSelected = true
-                allSelected = false
-                recurringSelected = false
-            }
-        )
+        }
     }
+
 }

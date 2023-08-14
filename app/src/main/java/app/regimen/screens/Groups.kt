@@ -1,6 +1,7 @@
 package app.regimen.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -46,7 +47,9 @@ fun GroupsScreen(
     }
 
     // Groups column
-    Column {
+    Column (
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
 
     }
 }

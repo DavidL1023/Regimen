@@ -127,6 +127,7 @@ fun SetPasswordButton() {
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 16.dp, end = 16.dp),
+        enabled = false
     ) {
         Icon(
             Icons.Filled.Password,
@@ -142,7 +143,7 @@ fun SetPasswordButton() {
 
 @Composable
 fun PasswordSwitch() {
-    var passcodeChecked by remember { mutableStateOf(true) }
+    var passcodeChecked by remember { mutableStateOf(false) }
 
     Row(
         Modifier

@@ -62,29 +62,11 @@ fun MainScreen() {
                 }
             )
         },
-        floatingActionButton = {
-            if (currentDestination != null) {
-                if (currentDestination.route != BottomBarScreen.Settings.route) {
-                    FloatingActionButton(
-                        onClick = {
-                            // Should be empty
-                        },
-                        shape = MaterialTheme.shapes.small.copy(CornerSize(percent = 50))
-                    ) {
-                        val fabIcon = getFabIconForDestination(currentDestination)
-                        val onClickAction = getFabOnClickActionForDestination(currentDestination)
-
-                        FloatingActionButton(onClick = onClickAction) {
-                            Icon(imageVector = fabIcon, contentDescription = null)
-                        }
-                    }
-                }
-            }
-        }
+        floatingActionButton = { MainFloatingActionButton(currentDestination) }
 
     ) {contentPadding ->
 
-        // Bottom nav bar navigation
+        // MAIN NAV HOST
         NavHost(
             navController = navController,
             startDestination = BottomBarScreen.Home.route,
@@ -92,7 +74,9 @@ fun MainScreen() {
                 contentPadding
             )
         ) {
-            composable(route = BottomBarScreen.Home.route) {
+            composable(
+                route = BottomBarScreen.Home.route,
+            ) {
                 HomeScreen(
                     onComposing = {
                         appBarState = it
@@ -100,7 +84,9 @@ fun MainScreen() {
                     navController = navController
                 )
             }
-            composable(route = BottomBarScreen.Pages.route) {
+            composable(
+                route = BottomBarScreen.Pages.route
+            ) {
                 PagesScreen(
                     onComposing = {
                         appBarState = it
@@ -108,7 +94,9 @@ fun MainScreen() {
                     navController = navController
                 )
             }
-            composable(route = BottomBarScreen.Groups.route) {
+            composable(
+                route = BottomBarScreen.Groups.route
+            ) {
                 GroupsScreen(
                     onComposing = {
                         appBarState = it
@@ -116,7 +104,9 @@ fun MainScreen() {
                     navController = navController
                 )
             }
-            composable(route = BottomBarScreen.Settings.route) {
+            composable(
+                route = BottomBarScreen.Settings.route
+            ) {
                 SettingsScreen(
                     onComposing = {
                         appBarState = it
@@ -129,7 +119,7 @@ fun MainScreen() {
     }
 }
 
-// Bottom nav bar
+// Generate the bottom nav bar
 @Composable
 fun BottomBar(navController: NavHostController) {
     val screens = listOf(
@@ -143,13 +133,14 @@ fun BottomBar(navController: NavHostController) {
 
     NavigationBar() {
         screens.forEach { screen ->
-            AddItem(screen = screen, currentDestination = currentDestination, navController = navController)
+            CreateNavBarItem(screen = screen, currentDestination = currentDestination, navController = navController)
         }
     }
 }
 
+// Function to create and return nav bar items
 @Composable
-fun RowScope.AddItem(
+fun RowScope.CreateNavBarItem(
     screen: BottomBarScreen,
     currentDestination: NavDestination?,
     navController: NavHostController
@@ -184,14 +175,13 @@ fun RowScope.AddItem(
     )
 }
 
-// Dynamic top app bar
+// Class to handle dynamic top bar Remembered values
 data class AppBarState(
     val title: String = "",
     val actions: (@Composable RowScope.() -> Unit)? = null
 )
 
 // Fab button functionality
-// Define a function to get the appropriate FAB icon based on the destination:
 private fun getFabIconForDestination(destination: NavDestination?): ImageVector {
     return when (destination?.route) {
         BottomBarScreen.Home.route -> Icons.Default.NotificationAdd
@@ -201,24 +191,46 @@ private fun getFabIconForDestination(destination: NavDestination?): ImageVector 
     }
 }
 
-// Define a function to get the appropriate FAB onClick action based on the destination:
+// Function to get the appropriate FAB onClick action based on the destination:
 private fun getFabOnClickActionForDestination(destination: NavDestination?): () -> Unit {
     return when (destination?.route) {
         BottomBarScreen.Home.route -> {
-            // Add your desired onClick action for the Home destination
+            // Add your desired fab onClick action for the Home destination
             {  }
         }
         BottomBarScreen.Pages.route -> {
-            // Add your desired onClick action for the Pages destination
+            // Add your desired fab onClick action for the Pages destination
             {  }
         }
         BottomBarScreen.Groups.route -> {
-            // Add your desired onClick action for the Groups destination
+            // Add your desired fab onClick action for the Groups destination
             {  }
         }
         else -> {
             // Default onClick action
             { }
+        }
+    }
+}
+
+// Fab
+@Composable
+fun MainFloatingActionButton(currentDestination: NavDestination?) {
+    if (currentDestination != null) {
+        if (currentDestination.route != BottomBarScreen.Settings.route) {
+            FloatingActionButton(
+                onClick = {
+                    // Should be empty
+                },
+
+            ) {
+                val fabIcon = getFabIconForDestination(currentDestination)
+                val onClickAction = getFabOnClickActionForDestination(currentDestination)
+
+                FloatingActionButton(onClick = onClickAction) {
+                    Icon(imageVector = fabIcon, contentDescription = null)
+                }
+            }
         }
     }
 }
