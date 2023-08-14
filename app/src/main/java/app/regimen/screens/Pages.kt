@@ -60,7 +60,7 @@ fun PagesScreen(
 
     // Pages column
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Search bar for pages
         PageSearchBar()

@@ -48,7 +48,7 @@ fun GroupsScreen(
 
     // Groups column
     Column (
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
 
     }

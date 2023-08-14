@@ -94,7 +94,7 @@ fun HomeScreen(
 
     // Home column
     Column (
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
 
         // Horizontal scroll for calendar filter
@@ -140,15 +140,15 @@ private fun VerticalChip(
 ) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(10.dp)) //allows ripple to match shape
+            .clip(RoundedCornerShape(12.dp)) //allows ripple to match shape
             .clickable(
                 onClick = onClick
             )
             .background(
                 color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background,
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(12.dp)
             )
-            .padding(8.dp),
+            .padding(9.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -157,10 +157,10 @@ private fun VerticalChip(
             Text(
                 text = topText,
                 modifier = Modifier
-                    .padding(horizontal = 6.dp)
+                    .padding(horizontal = 2.dp)
                     .alpha(if (isSelected) 1f else 0.6f)
             )
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 modifier = Modifier.alpha(if (isSelected) 1f else 0.6f),
                 text = bottomText,
