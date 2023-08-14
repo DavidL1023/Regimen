@@ -125,7 +125,7 @@ private fun CalendarFilterChips() {
                 isSelected = isSelected,
                 onClick = { selectedChipIndex.intValue = index },
                 topText = "Thu",
-                bottomText = "$index"
+                bottomText = "${index+1}"
             )
         }
     }
@@ -145,7 +145,7 @@ private fun VerticalChip(
                 onClick = onClick
             )
             .background(
-                color = if (isSelected) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.background,
+                color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background,
                 shape = RoundedCornerShape(10.dp)
             )
             .padding(8.dp),
@@ -158,10 +158,11 @@ private fun VerticalChip(
                 text = topText,
                 modifier = Modifier
                     .padding(horizontal = 6.dp)
-                    .alpha(0.7f),
+                    .alpha(if (isSelected) 1f else 0.6f)
             )
             Spacer(modifier = Modifier.height(14.dp))
             Text(
+                modifier = Modifier.alpha(if (isSelected) 1f else 0.6f),
                 text = bottomText,
                 style = MaterialTheme.typography.titleMedium
             )
@@ -173,7 +174,7 @@ private fun VerticalChip(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryFilterSegmented() {
-    var selectedIndex by remember { mutableStateOf(0) }
+    var selectedIndex by remember { mutableIntStateOf(0) }
     val options = listOf("All", "Recurring", "Single Time")
     val icons = listOf(
         null,
@@ -184,7 +185,7 @@ fun CategoryFilterSegmented() {
     SingleChoiceSegmentedButtonRow (
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp)
+            .padding(horizontal = 24.dp)
     ) {
         options.forEachIndexed { index, label ->
             SegmentedButton(

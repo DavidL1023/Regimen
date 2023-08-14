@@ -64,15 +64,13 @@ fun MainScreen() {
         },
         floatingActionButton = { MainFloatingActionButton(currentDestination) }
 
-    ) {contentPadding ->
+    ) {
 
         // MAIN NAV HOST
         NavHost(
             navController = navController,
             startDestination = BottomBarScreen.Home.route,
-            modifier = Modifier.padding(
-                contentPadding
-            )
+            modifier = Modifier.padding(it)
         ) {
             composable(
                 route = BottomBarScreen.Home.route,
