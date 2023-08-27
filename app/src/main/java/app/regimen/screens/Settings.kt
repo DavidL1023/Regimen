@@ -54,6 +54,7 @@ fun SettingsScreen(
         onComposing(
             AppBarState(
                 title = "Settings",
+                subTitle = "Personalize your app.",
             )
         )
     }
@@ -67,14 +68,14 @@ fun SettingsScreen(
         Text(
             text = "Notifications",
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(start = 16.dp)
+            modifier = Modifier.padding(start = 24.dp)
         )
         Text(
             text = "Set how you want to be notified.",
             style = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Normal
             ),
-            modifier = Modifier.padding(start = 16.dp),
+            modifier = Modifier.padding(start = 24.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -84,7 +85,7 @@ fun SettingsScreen(
         Text(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier
-                .padding(start = 16.dp),
+                .padding(start = 24.dp),
             text = "Visuals"
         )
         Text(
@@ -92,7 +93,7 @@ fun SettingsScreen(
                 fontWeight = FontWeight.Normal
             ),
             modifier = Modifier
-                .padding(start = 16.dp),
+                .padding(start = 24.dp),
             text = "Select app theme.",
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -103,14 +104,14 @@ fun SettingsScreen(
         Text(
             text = "Security",
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(start = 16.dp)
+            modifier = Modifier.padding(start = 24.dp)
         )
         Text(
             text = "Choose how you want to secure your app.",
             style = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Normal
             ),
-            modifier = Modifier.padding(start = 16.dp),
+            modifier = Modifier.padding(start = 24.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -126,12 +127,12 @@ fun SetPasswordButton() {
         onClick = {  },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp),
+            .padding(start = 24.dp, end = 24.dp),
         enabled = false
     ) {
         Icon(
             Icons.Filled.Password,
-            contentDescription = "Favorite",
+            contentDescription = null,
             modifier = Modifier.size(ButtonDefaults.IconSize)
         )
         Spacer(Modifier.size(ButtonDefaults.IconSpacing))
@@ -153,7 +154,7 @@ fun PasswordSwitch() {
         Text(
             text = "Enable Passcode",
             style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(start = 16.dp)
+            modifier = Modifier.padding(start = 24.dp)
         )
 
         Spacer(modifier = Modifier.weight(1f)) // Keep switch on the right side of screen
@@ -161,7 +162,7 @@ fun PasswordSwitch() {
         Switch(
             checked = passcodeChecked,
             onCheckedChange = { passcodeChecked = it },
-            modifier = Modifier.padding(end = 16.dp)
+            modifier = Modifier.padding(end = 24.dp)
         )
     }
 }
@@ -188,12 +189,12 @@ fun ThemeRadio() {
                 RadioButton(
                     selected = (text == selectedOption),
                     onClick = null,
-                    modifier = Modifier.padding(start = 16.dp)
+                    modifier = Modifier.padding(start = 24.dp)
                 )
                 Text(
                     text = text,
                     style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(start = 16.dp)
+                    modifier = Modifier.padding(start = 24.dp)
                 )
             }
         }
@@ -207,11 +208,11 @@ fun NotificationsButton() {
         onClick = { openNotificationSettings(context) },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(start = 24.dp, end = 24.dp, top = 12.dp),
     ) {
         Icon(
             Icons.Filled.Notifications,
-            contentDescription = "Favorite",
+            contentDescription = null,
             modifier = Modifier.size(ButtonDefaults.IconSize)
         )
         Spacer(Modifier.size(ButtonDefaults.IconSpacing))

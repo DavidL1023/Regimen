@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +35,8 @@ import androidx.compose.material.icons.twotone.AirlineSeatLegroomNormal
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -80,6 +83,7 @@ fun HomeScreen(
         onComposing(
             AppBarState(
                 title = "Home",
+                subTitle = "Manage your life.",
                 actions = {
                     IconButton(onClick = { }) {
                         Icon(
@@ -94,7 +98,7 @@ fun HomeScreen(
 
     // Home column
     Column (
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
         // Horizontal scroll for calendar filter
@@ -103,8 +107,38 @@ fun HomeScreen(
         // Filter by reminder type
         CategoryFilterSegmented()
 
+        // Reminder cards
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            content = {
+                items(5) { index ->
+                    ReminderCard()
+                }
+            }
+        )
     }
 
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReminderCard() {
+    Card(
+        onClick = { /* Do something */ },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(140.dp)
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            Column {
+                Text(text = "Reminder")
+            }
+        }
+
+    }
 }
 
 @Composable

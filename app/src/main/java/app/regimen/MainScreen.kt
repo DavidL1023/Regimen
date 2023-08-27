@@ -1,5 +1,6 @@
 package app.regimen
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CornerSize
@@ -11,6 +12,7 @@ import androidx.compose.material.icons.filled.NotificationAdd
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.NavigationBar
@@ -53,9 +55,14 @@ fun MainScreen() {
     Scaffold(
         bottomBar = { BottomBar(navController = navController) },
         topBar = {
-            MediumTopAppBar(
+            LargeTopAppBar(
                 title = {
-                    Text(text = appBarState.title)
+                    Column() {
+                        Text(text = appBarState.title)
+                        Text(
+                            text = appBarState.subTitle,
+                            style = MaterialTheme.typography.titleMedium)
+                    }
                 },
                 actions = {
                     appBarState.actions?.invoke(this)
@@ -176,6 +183,7 @@ fun RowScope.CreateNavBarItem(
 // Class to handle dynamic top bar Remembered values
 data class AppBarState(
     val title: String = "",
+    val subTitle: String = "",
     val actions: (@Composable RowScope.() -> Unit)? = null
 )
 

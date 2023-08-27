@@ -7,13 +7,22 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Filter
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Card
 import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -46,6 +55,7 @@ fun PagesScreen(
         onComposing(
             AppBarState(
                 title = "Pages",
+                subTitle = "Store your thoughts.",
                 actions = {
                     IconButton(onClick = { }) {
                         Icon(
@@ -60,13 +70,44 @@ fun PagesScreen(
 
     // Pages column
     Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+
         // Search bar for pages
         PageSearchBar()
 
+        // Page Cards using a responsive grid
+        LazyVerticalStaggeredGrid(
+            columns = StaggeredGridCells.Fixed(2),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            verticalItemSpacing = 8.dp,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            content = {
+                items(5) { index ->
+                    PageCard()
+                }
+            }
+        )
     }
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PageCard() {
+    Card(
+        onClick = { /* Do something */ },
+        modifier = Modifier
+            .heightIn(min = 70.dp, max = 200.dp)
+            .fillMaxWidth()
+    ) {
+        Column {
+            Text(text = "Date")
+            Text(text = "Header")
+            Text(text = "Body")
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,7 +117,9 @@ fun PageSearchBar() {
     var active by remember { mutableStateOf(false)}
 
     DockedSearchBar(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
         query = text,
         onQueryChange = {
             text = it
