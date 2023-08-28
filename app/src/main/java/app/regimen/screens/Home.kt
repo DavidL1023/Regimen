@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -23,12 +24,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.CallMerge
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Filter
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.twotone.AirlineSeatLegroomNormal
@@ -36,14 +39,20 @@ import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -51,6 +60,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRowScope
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -64,10 +74,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import app.regimen.AppBarState
 import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
@@ -98,7 +110,7 @@ fun HomeScreen(
 
     // Home column
     Column (
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
 
         // Horizontal scroll for calendar filter
@@ -107,20 +119,33 @@ fun HomeScreen(
         // Filter by reminder type
         CategoryFilterSegmented()
 
-        // Reminder cards
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            content = {
-                items(5) { index ->
-                    ReminderCard()
-                }
-            }
-        )
+        // Reminder cards scrollable column
+        LazyReminderColumn()
     }
 
+}
+
+@Composable
+fun LazyReminderColumn() {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        content = {
+            item {
+                Spacer(modifier = Modifier.height(2.dp))
+            }
+
+            items(5) { index ->
+                ReminderCard()
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -133,8 +158,13 @@ fun ReminderCard() {
             .height(140.dp)
     ) {
         Box(Modifier.fillMaxSize()) {
-            Column {
+            Column(
+                modifier = Modifier.padding(10.dp)
+            )  {
                 Text(text = "Reminder")
+                Text(text = "Due date")
+                Text(text = "Group")
+                Text(text = "Type")
             }
         }
 
@@ -144,26 +174,25 @@ fun ReminderCard() {
 @Composable
 private fun CalendarFilterChips() {
     val selectedChipIndex = remember { mutableIntStateOf(0) }
-    val state = rememberScrollState()
 
-    Row(
+    LazyRow(
         modifier = Modifier
-            .padding(horizontal = 24.dp)
-            .horizontalScroll(state),
+            .padding(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        for (index in 0 until 14) {
+        items(14) { index ->
             val isSelected = index == selectedChipIndex.intValue
 
             VerticalChip(
                 isSelected = isSelected,
                 onClick = { selectedChipIndex.intValue = index },
                 topText = "Thu",
-                bottomText = "${index+1}"
+                bottomText = "${index + 1}"
             )
         }
     }
 }
+
 
 @Composable
 private fun VerticalChip(
@@ -174,13 +203,13 @@ private fun VerticalChip(
 ) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp)) //allows ripple to match shape
+            .clip(RoundedCornerShape(14.dp)) //allows ripple to match shape
             .clickable(
                 onClick = onClick
             )
             .background(
                 color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(14.dp)
             )
             .padding(9.dp),
         contentAlignment = Alignment.Center
@@ -192,9 +221,10 @@ private fun VerticalChip(
                 text = topText,
                 modifier = Modifier
                     .padding(horizontal = 2.dp)
-                    .alpha(if (isSelected) 1f else 0.6f)
+                    .alpha(if (isSelected) 1f else 0.6f),
+                style = MaterialTheme.typography.titleSmall
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             Text(
                 modifier = Modifier.alpha(if (isSelected) 1f else 0.6f),
                 text = bottomText,
@@ -219,7 +249,7 @@ fun CategoryFilterSegmented() {
     SingleChoiceSegmentedButtonRow (
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = 20.dp)
     ) {
         options.forEachIndexed { index, label ->
             SegmentedButton(
@@ -227,7 +257,6 @@ fun CategoryFilterSegmented() {
                 onClick = { selectedIndex = index },
                 selected = index == selectedIndex,
                 icon = {
-
                     SegmentedButtonDefaults.SegmentedButtonIcon(
                         active = index == selectedIndex,
                         inactiveContent = {
@@ -243,7 +272,7 @@ fun CategoryFilterSegmented() {
 
                 },
             ) {
-                Text(label)
+                Text(text = label)
             }
         }
     }

@@ -16,8 +16,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CircleNotifications
+import androidx.compose.material.icons.filled.FlagCircle
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -65,11 +70,20 @@ fun SettingsScreen(
     ) {
 
         // Bring user to android notification page
-        Text(
-            text = "Notifications",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(start = 24.dp)
-        )
+        Row (modifier = Modifier.padding(start = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Notifications,
+                contentDescription = null
+            )
+
+            Text(
+                text = "Notifications",
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+
         Text(
             text = "Set how you want to be notified.",
             style = MaterialTheme.typography.titleSmall.copy(
@@ -82,12 +96,20 @@ fun SettingsScreen(
         NotificationsButton()
 
         // Theme selection setting
-        Text(
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier
-                .padding(start = 24.dp),
-            text = "Visuals"
-        )
+        Row (modifier = Modifier.padding(start = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Visibility,
+                contentDescription = null
+            )
+
+            Text(
+                style = MaterialTheme.typography.titleMedium,
+                text = "Visuals"
+            )
+        }
+
         Text(
             style = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Normal
@@ -101,11 +123,20 @@ fun SettingsScreen(
         ThemeRadio()
 
         // Password settings
-        Text(
-            text = "Security",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(start = 24.dp)
-        )
+        Row (modifier = Modifier.padding(start = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Security,
+                contentDescription = null
+            )
+
+            Text(
+                text = "Security",
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+
         Text(
             text = "Choose how you want to secure your app.",
             style = MaterialTheme.typography.titleSmall.copy(

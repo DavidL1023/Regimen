@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -58,10 +59,13 @@ fun MainScreen() {
             LargeTopAppBar(
                 title = {
                     Column() {
-                        Text(text = appBarState.title)
                         Text(
+                            text = appBarState.title,
+                            style = MaterialTheme.typography.displaySmall)
+                        Text(
+                            modifier = Modifier.alpha(0.6f),
                             text = appBarState.subTitle,
-                            style = MaterialTheme.typography.titleMedium)
+                            style = MaterialTheme.typography.labelLarge)
                     }
                 },
                 actions = {
