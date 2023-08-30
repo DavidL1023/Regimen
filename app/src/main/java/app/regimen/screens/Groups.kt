@@ -117,16 +117,19 @@ fun GroupTab () {
                     onClick = { state = index },
                     text = { Text(
                         text = title,
-                        modifier = Modifier
-                            .alpha(if (state == index) 1f else 0.6f)
-                        )
-                           },
+                        color = if (state == index)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.secondary
+                        ) },
                     icon = { Icon(
                         imageVector = icons[index],
                         contentDescription = null,
-                        modifier = Modifier
-                            .size(22.dp)
-                            .alpha(if (state == index) 1f else 0.6f)
+                        tint = if (state == index)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(22.dp)
                     ) }
                 )
             }
@@ -145,11 +148,17 @@ fun GroupTab () {
 
 @Composable
 fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
+    val textStyle = if (selected) {
+        MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+    } else {
+        MaterialTheme.typography.bodyLarge
+    }
+
     ListItem(
         modifier = Modifier
             .clickable { onSelectedChange() }
             .padding(horizontal = 12.dp),
-        headlineContent = { Text("Group $name") },
+        headlineContent = { Text("Group $name", style = textStyle) },
         trailingContent = {
             if (selected) {
                 Icon(
@@ -166,6 +175,7 @@ fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
         }
     )
 }
+
 
 @Composable
 fun GroupList() {

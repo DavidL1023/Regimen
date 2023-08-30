@@ -239,7 +239,7 @@ fun NotificationsButton() {
         onClick = { openNotificationSettings(context) },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 24.dp, end = 24.dp, top = 12.dp),
+            .padding(start = 24.dp, end = 24.dp, top = 8.dp),
     ) {
         Icon(
             Icons.Filled.Notifications,

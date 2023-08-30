@@ -39,6 +39,7 @@ import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
@@ -72,6 +73,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
@@ -221,12 +223,11 @@ private fun VerticalChip(
                 text = topText,
                 modifier = Modifier
                     .padding(horizontal = 2.dp)
-                    .alpha(if (isSelected) 1f else 0.6f),
+                    .alpha(if (isSelected) 1f else 0.7f),
                 style = MaterialTheme.typography.titleSmall
             )
             Spacer(modifier = Modifier.height(14.dp))
             Text(
-                modifier = Modifier.alpha(if (isSelected) 1f else 0.6f),
                 text = bottomText,
                 style = MaterialTheme.typography.titleMedium
             )
