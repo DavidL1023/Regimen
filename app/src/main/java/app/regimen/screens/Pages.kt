@@ -48,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -101,11 +102,10 @@ fun LazyPageGrid() {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp),
-        verticalItemSpacing = 8.dp,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         content = {
             item {
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(10.dp))
             }
 
             items(5) { index ->
@@ -122,7 +122,7 @@ fun LazyPageGrid() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SortExpandable() {
-    val options = listOf("Date created", "Option 2", "Option 3")
+    val options = listOf("Date edited", "Date created", "Name", "Group")
     var expanded by remember { mutableStateOf(false) }
     var selectedOptionText by remember { mutableStateOf(options[0]) }
 
@@ -173,6 +173,8 @@ fun PageCard() {
         modifier = Modifier
             .heightIn(min = 70.dp, max = 200.dp)
             .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .shadow(elevation = 2.dp, shape = MaterialTheme.shapes.medium)
     ) {
         Column(
             modifier = Modifier.padding(10.dp)

@@ -136,7 +136,7 @@ fun LazyReminderColumn() {
         verticalArrangement = Arrangement.spacedBy(12.dp),
         content = {
             item {
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(1.dp))
             }
 
             items(5) { index ->
@@ -158,6 +158,7 @@ fun ReminderCard() {
         modifier = Modifier
             .fillMaxWidth()
             .height(140.dp)
+            .shadow(elevation = 2.dp, shape = MaterialTheme.shapes.medium)
     ) {
         Box(Modifier.fillMaxSize()) {
             Column(
@@ -169,9 +170,9 @@ fun ReminderCard() {
                 Text(text = "Type")
             }
         }
-
     }
 }
+
 
 @Composable
 private fun CalendarFilterChips() {

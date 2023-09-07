@@ -199,16 +199,21 @@ fun CustomNavBar(
                     contentAlignment = Alignment.Center,
                 ) {
                     val interactionSource = remember { MutableInteractionSource() }
+                    val onClick: () -> Unit = {
+                        if (currentDestination?.route != screen.route) {
+                            // Change screen only if it's not the current screen
+                            navController.navigate(screen.route) {
+                                popUpTo(navController.graph.findStartDestination().id)
+                                launchSingleTop = true
+                            }
+                        }
+                    }
                     CustomNavBarItem(
                         modifier = Modifier.clickable(
                             interactionSource = interactionSource,
                             indication = null // Get rid of ripple effect
                         ) {
-                            // Change screen
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id)
-                                launchSingleTop = true
-                            }
+                            onClick()
                         },
                         screen = screen,
                         isSelected = isSelected
@@ -218,6 +223,7 @@ fun CustomNavBar(
         }
     }
 }
+
 
 // custom visual for the bottom nav bar icons
 @Composable
@@ -319,6 +325,7 @@ data class AppBarState(
 
 // Fab button functionality
 private fun getFabIconForDestination(destination: NavDestination?): ImageVector {
+
     return when (destination?.route) {
         BottomBarScreen.Home.route -> Icons.Default.NotificationAdd
         BottomBarScreen.Pages.route -> Icons.Default.Edit
