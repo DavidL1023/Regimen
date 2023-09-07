@@ -1,5 +1,6 @@
 package app.regimen.screens
 
+import android.widget.Toast
 import android.widget.ToggleButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -83,28 +84,29 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import app.regimen.AppBarState
+import app.regimen.DynamicScaffoldState
 import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onComposing: (AppBarState) -> Unit,
+    onComposing: (DynamicScaffoldState) -> Unit,
     navController: NavController
 ) {
     // Dynamic toolbar
     LaunchedEffect(key1 = true) {
         onComposing(
-            AppBarState(
-                title = "Home",
-                subTitle = "Manage your life.",
-                actions = {
+            DynamicScaffoldState(
+                toolbarActions = {
                     IconButton(onClick = { }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = null
                         )
                     }
+                },
+                fabOnClick = {
+
                 }
             )
         )
@@ -136,7 +138,7 @@ fun LazyReminderColumn() {
         verticalArrangement = Arrangement.spacedBy(12.dp),
         content = {
             item {
-                Spacer(modifier = Modifier.height(1.dp))
+                Spacer(modifier = Modifier.height(0.5.dp))
             }
 
             items(5) { index ->

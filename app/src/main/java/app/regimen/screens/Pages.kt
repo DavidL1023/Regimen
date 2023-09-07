@@ -53,26 +53,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import app.regimen.AppBarState
+import app.regimen.DynamicScaffoldState
 
 @Composable
 fun PagesScreen(
-    onComposing: (AppBarState) -> Unit,
+    onComposing: (DynamicScaffoldState) -> Unit,
     navController: NavController
 ) {
     // Dynamic toolbar
     LaunchedEffect(key1 = true) {
         onComposing(
-            AppBarState(
-                title = "Pages",
-                subTitle = "Store your thoughts.",
-                actions = {
+            DynamicScaffoldState(
+                toolbarActions = {
                     IconButton(onClick = { }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = null
                         )
                     }
+                },
+                fabOnClick = {
+
                 }
             )
         )

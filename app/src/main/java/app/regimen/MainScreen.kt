@@ -69,15 +69,32 @@ import app.regimen.screens.SettingsScreen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
-    // Used for dynamic topAppBar
-    var appBarState by remember {
-        mutableStateOf(AppBarState())
+    // Used for dynamic scaffold
+    var dynamicScaffoldState by remember {
+        mutableStateOf(DynamicScaffoldState())
     }
 
     // Bottom nav bar destination tracker
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+
+    // Define your text based on the current destination
+    val titleText = when (currentDestination?.route) {
+        BottomBarScreen.Home.route -> "Home"
+        BottomBarScreen.Pages.route -> "Pages"
+        BottomBarScreen.Groups.route -> "Groups"
+        BottomBarScreen.Settings.route -> "Settings"
+        else -> ""
+    }
+
+    val subtitleText = when (currentDestination?.route) {
+        BottomBarScreen.Home.route -> "Manage your life."
+        BottomBarScreen.Pages.route -> "Organize your data."
+        BottomBarScreen.Groups.route -> "Store your thoughts."
+        BottomBarScreen.Settings.route -> "Personalize your app."
+        else -> ""
+    }
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) },
@@ -86,20 +103,31 @@ fun MainScreen() {
                 title = {
                     Column() {
                         Text(
-                            text = appBarState.title,
+                            text = titleText,
                             style = MaterialTheme.typography.displaySmall)
                         Text(
                             modifier = Modifier.alpha(0.6f),
-                            text = appBarState.subTitle,
+                            text = subtitleText,
                             style = MaterialTheme.typography.labelLarge)
                     }
                 },
                 actions = {
-                    appBarState.actions?.invoke(this)
+                    dynamicScaffoldState.toolbarActions?.invoke(this)
                 }
             )
         },
-        floatingActionButton = { MainFloatingActionButton(currentDestination) }
+        floatingActionButton = {
+            if (currentDestination?.route != BottomBarScreen.Settings.route) {
+                val fabIcon = getFabIconForDestination(currentDestination)
+                FloatingActionButton(
+                    onClick = {
+                        dynamicScaffoldState.fabOnClick?.invoke()
+                    }
+                ) {
+                    Icon(imageVector = fabIcon, contentDescription = null)
+                }
+            }
+        }
 
     ) {
 
@@ -114,7 +142,7 @@ fun MainScreen() {
             ) {
                 HomeScreen(
                     onComposing = {
-                        appBarState = it
+                        dynamicScaffoldState = it
                     },
                     navController = navController
                 )
@@ -124,7 +152,7 @@ fun MainScreen() {
             ) {
                 PagesScreen(
                     onComposing = {
-                        appBarState = it
+                        dynamicScaffoldState = it
                     },
                     navController = navController
                 )
@@ -134,7 +162,7 @@ fun MainScreen() {
             ) {
                 GroupsScreen(
                     onComposing = {
-                        appBarState = it
+                        dynamicScaffoldState = it
                     },
                     navController = navController
                 )
@@ -144,7 +172,7 @@ fun MainScreen() {
             ) {
                 SettingsScreen(
                     onComposing = {
-                        appBarState = it
+                        dynamicScaffoldState = it
                     },
                     navController = navController
                 )
@@ -316,64 +344,18 @@ private fun CustomNavBarItem(
     }
 }
 
-// Class to handle dynamic top bar Remembered values
-data class AppBarState(
-    val title: String = "",
-    val subTitle: String = "",
-    val actions: (@Composable RowScope.() -> Unit)? = null
+// Class to handle dynamic scaffold for each nav screen
+data class DynamicScaffoldState(
+    val toolbarActions: (@Composable RowScope.() -> Unit)? = null,
+    val fabOnClick: (() -> Unit)? = null
 )
 
-// Fab button functionality
+// Fab button icon
 private fun getFabIconForDestination(destination: NavDestination?): ImageVector {
-
     return when (destination?.route) {
         BottomBarScreen.Home.route -> Icons.Default.NotificationAdd
         BottomBarScreen.Pages.route -> Icons.Default.Edit
         BottomBarScreen.Groups.route -> Icons.Default.CreateNewFolder
         else -> Icons.Filled.Add // Default icon
-    }
-}
-
-// Function to get the appropriate FAB onClick action based on the destination:
-private fun getFabOnClickActionForDestination(destination: NavDestination?): () -> Unit {
-    return when (destination?.route) {
-        BottomBarScreen.Home.route -> {
-            // Add your desired fab onClick action for the Home destination
-            {  }
-        }
-        BottomBarScreen.Pages.route -> {
-            // Add your desired fab onClick action for the Pages destination
-            {  }
-        }
-        BottomBarScreen.Groups.route -> {
-            // Add your desired fab onClick action for the Groups destination
-            {  }
-        }
-        else -> {
-            // Default onClick action
-            { }
-        }
-    }
-}
-
-// Fab
-@Composable
-fun MainFloatingActionButton(currentDestination: NavDestination?) {
-    if (currentDestination != null) {
-        if (currentDestination.route != BottomBarScreen.Settings.route) {
-            FloatingActionButton(
-                onClick = {
-                    // Should be empty
-                },
-
-            ) {
-                val fabIcon = getFabIconForDestination(currentDestination)
-                val onClickAction = getFabOnClickActionForDestination(currentDestination)
-
-                FloatingActionButton(onClick = onClickAction) {
-                    Icon(imageVector = fabIcon, contentDescription = null)
-                }
-            }
-        }
     }
 }

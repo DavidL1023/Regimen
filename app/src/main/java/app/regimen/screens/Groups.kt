@@ -49,26 +49,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import app.regimen.AppBarState
+import app.regimen.DynamicScaffoldState
 
 @Composable
 fun GroupsScreen(
-    onComposing: (AppBarState) -> Unit,
+    onComposing: (DynamicScaffoldState) -> Unit,
     navController: NavController
 ) {
     // Dynamic toolbar
     LaunchedEffect(key1 = true) {
         onComposing(
-            AppBarState(
-                title = "Groups",
-                subTitle = "Organize your data.",
-                actions = {
+            DynamicScaffoldState(
+                toolbarActions = {
                     IconButton(onClick = { }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = null
                         )
                     }
+                },
+                fabOnClick = {
+
                 }
             )
         )

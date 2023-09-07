@@ -47,19 +47,19 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.startActivity
 import androidx.navigation.NavController
-import app.regimen.AppBarState
+import app.regimen.DynamicScaffoldState
 
 @Composable
 fun SettingsScreen(
-    onComposing: (AppBarState) -> Unit,
+    onComposing: (DynamicScaffoldState) -> Unit,
     navController: NavController
 ) {
     // Dynamic toolbar
     LaunchedEffect(key1 = true) {
         onComposing(
-            AppBarState(
-                title = "Settings",
-                subTitle = "Personalize your app.",
+            DynamicScaffoldState(
+                toolbarActions = {
+                }
             )
         )
     }
