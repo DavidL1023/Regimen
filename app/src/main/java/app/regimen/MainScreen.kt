@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.NotificationAdd
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
@@ -90,8 +91,8 @@ fun MainScreen() {
 
     val subtitleText = when (currentDestination?.route) {
         BottomBarScreen.Home.route -> "Manage your life."
-        BottomBarScreen.Pages.route -> "Organize your data."
-        BottomBarScreen.Groups.route -> "Store your thoughts."
+        BottomBarScreen.Pages.route -> "Store your thoughts."
+        BottomBarScreen.Groups.route -> "Organize your data."
         BottomBarScreen.Settings.route -> "Personalize your app."
         else -> ""
     }
@@ -109,6 +110,12 @@ fun MainScreen() {
                             modifier = Modifier.alpha(0.6f),
                             text = subtitleText,
                             style = MaterialTheme.typography.labelLarge)
+
+                        HorizontalDivider(
+                            modifier = Modifier
+                                .alpha(0.4f)
+                                .padding(top = 10.dp, end = 16.dp))
+
                     }
                 },
                 actions = {

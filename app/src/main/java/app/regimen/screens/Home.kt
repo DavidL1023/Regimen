@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.twotone.AirlineSeatLegroomNormal
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.AssistChip
@@ -159,17 +161,50 @@ fun ReminderCard() {
         onClick = { /* Do something */ },
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp)
-            .shadow(elevation = 2.dp, shape = MaterialTheme.shapes.medium)
+            .height(160.dp)
+            .shadow(elevation = 4.dp, shape = MaterialTheme.shapes.medium)
     ) {
         Box(Modifier.fillMaxSize()) {
             Column(
-                modifier = Modifier.padding(10.dp)
+                modifier = Modifier.padding(12.dp)
             )  {
-                Text(text = "Reminder")
-                Text(text = "Due date")
-                Text(text = "Group")
-                Text(text = "Type")
+
+                Text(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape) // Oval background
+                        .padding(8.dp), // Padding for the oval background
+                    text = "Type",
+                    style = MaterialTheme.typography.labelMedium
+                )
+
+                Text(
+                    modifier = Modifier
+                        .padding(top = 6.dp, bottom = 8.dp),
+                    text = "Reminder",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                Row (
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.CalendarMonth,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.padding(horizontal = 2.dp))
+                    Text(
+                        text = "16 Feb · 11:00 PM",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Text(
+                    text = "Group",
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }

@@ -172,22 +172,24 @@ fun PageCard() {
     Card(
         onClick = { /* Do something */ },
         modifier = Modifier
-            .heightIn(min = 70.dp, max = 200.dp)
+            .heightIn(min = 80.dp, max = 200.dp)
             .fillMaxWidth()
             .padding(bottom = 8.dp)
-            .shadow(elevation = 2.dp, shape = MaterialTheme.shapes.medium)
+            .shadow(elevation = 4.dp, shape = MaterialTheme.shapes.medium)
     ) {
         Column(
             modifier = Modifier.padding(10.dp)
         ) {
             Text(
                 modifier = Modifier
-                    .padding(bottom = 2.dp)
+                    .padding(bottom = 4.dp)
                     .alpha(0.5f),
                 text = "Date created / modified",
                 style = MaterialTheme.typography.labelSmall
             )
             Text(
+                modifier = Modifier
+                    .padding(bottom = 2.dp),
                 text = "Header",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.SemiBold

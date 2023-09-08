@@ -56,7 +56,6 @@ class MainActivity : ComponentActivity() {
             RegimenTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
                 ) {
                     MainScreen()
                 }
