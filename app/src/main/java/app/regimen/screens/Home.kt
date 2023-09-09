@@ -95,6 +95,8 @@ fun HomeScreen(
         )
     }
 
+
+
     // Home column
     Column (
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -125,7 +127,7 @@ fun LazyReminderColumn() {
             }
 
             items(5) { index ->
-                ReminderCard()
+                ReminderCard(true)
             }
 
             item {
@@ -137,12 +139,14 @@ fun LazyReminderColumn() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReminderCard() {
+fun ReminderCard(displayGroup: Boolean) {
+    val cardHeight = if (displayGroup) 160.dp else 120.dp
+
     Card(
         onClick = { /* Do something */ },
         modifier = Modifier
             .fillMaxWidth()
-            .height(160.dp)
+            .height(cardHeight)
             .shadow(elevation = 4.dp, shape = MaterialTheme.shapes.medium)
     ) {
         Box(Modifier.fillMaxSize()) {
@@ -180,16 +184,20 @@ fun ReminderCard() {
                     )
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                if (displayGroup) {
+                    Spacer(modifier = Modifier.weight(1f))
 
-                Text(
-                    text = "Group",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                    Text(
+                        modifier = Modifier.alpha(0.85f),
+                        text = "Group",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
     }
 }
+
 
 
 @Composable

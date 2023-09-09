@@ -1,30 +1,28 @@
 package app.regimen.screens
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Filter
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Note
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -34,6 +32,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,12 +40,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import app.regimen.DynamicScaffoldState
@@ -137,14 +133,87 @@ fun GroupTab () {
         }
 
         // Display group list
-        GroupList()
+        Column{
+            val isButtonClicked  = toggleableTextButton()
+            ExpandableGroupList(isButtonClicked)
+        }
 
+        // Display tab content
+        if (state == 0) {
+            RemindersGroupTab()
+        } else {
+            PagesGroupTab()
+        }
+    }
+}
+
+// Return clicked boolean to enable / disable
+@Composable
+fun toggleableTextButton() : Boolean {
+    var isClicked by remember { mutableStateOf(false) }
+
+    TextButton(
+        modifier = Modifier
+            .padding(start = 16.dp),
+        onClick = {
+            isClicked = !isClicked
+
+        }
+    ) {
+        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
         Text(
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            text = "Text tab ${state + 1} selected",
-            style = MaterialTheme.typography.bodyLarge
+            text = "Select Group",
+            style = MaterialTheme.typography.titleSmall
+        )
+        Icon(
+            modifier = Modifier
+                .rotate(animateFloatAsState(if (isClicked) 180f else 0f).value)
+                .size(ButtonDefaults.IconSize),
+            imageVector = Icons.Default.KeyboardArrowDown,
+            contentDescription = null,
         )
     }
+
+    return isClicked
+}
+
+
+@Composable
+fun RemindersGroupTab() {
+    LazyColumn(modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        content = {
+
+            items(5) { index ->
+                ReminderCard(false)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    )
+}
+
+@Composable
+fun PagesGroupTab() {
+    LazyColumn(modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        content = {
+
+            items(5) { index ->
+                PageCard(false)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    )
 }
 
 @Composable
@@ -179,21 +248,15 @@ fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
 
 
 @Composable
-fun GroupList() {
+fun ExpandableGroupList(isVisible: Boolean) {
     var selectedItem by remember { mutableIntStateOf(0) }
 
+    val targetHeight = if (isVisible) 180.dp else 0.dp
+    val animatedHeight by animateDpAsState(targetValue = targetHeight)
+
     LazyColumn(
-        modifier = Modifier
-            .height(170.dp)
+        modifier = Modifier.height(animatedHeight)
     ) {
-        item {
-            Text(
-                text = "Select group:",
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier
-                    .padding(start = 24.dp)
-            )
-        }
 
         items(5) { index ->
             val isSelected = selectedItem == index
@@ -205,5 +268,6 @@ fun GroupList() {
                 }
             )
         }
+
     }
 }

@@ -1,5 +1,6 @@
 package app.regimen.screens
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +21,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Filter
@@ -48,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -110,7 +113,7 @@ fun LazyPageGrid() {
             }
 
             items(5) { index ->
-                PageCard()
+                PageCard(true)
             }
 
             item {
@@ -123,7 +126,7 @@ fun LazyPageGrid() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SortExpandable() {
-    val options = listOf("Date edited", "Date created", "Name", "Group")
+    val options = listOf("Date edited", "Date created", "Name")
     var expanded by remember { mutableStateOf(false) }
     var selectedOptionText by remember { mutableStateOf(options[0]) }
 
@@ -145,7 +148,12 @@ fun SortExpandable() {
                     contentDescription = null
                 )
             },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            trailingIcon = {
+                Icon(
+                    modifier = Modifier.rotate(animateFloatAsState(if (expanded) 180f else 0f).value),
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = null
+                )},
             shape = RoundedCornerShape(18.dp)
         )
         ExposedDropdownMenu(
@@ -168,7 +176,7 @@ fun SortExpandable() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PageCard() {
+fun PageCard(displayGroup: Boolean) {
     Card(
         onClick = { /* Do something */ },
         modifier = Modifier
@@ -188,18 +196,23 @@ fun PageCard() {
                 style = MaterialTheme.typography.labelSmall
             )
             Text(
-                modifier = Modifier
-                    .padding(bottom = 2.dp),
                 text = "Header",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.SemiBold
-                )
+                style = MaterialTheme.typography.titleSmall
             )
             Text(
-                modifier = Modifier.alpha(0.85f),
                 style = MaterialTheme.typography.bodyMedium,
                 text = "Body"
             )
+
+            if (displayGroup) {
+                Text(
+                    modifier = Modifier
+                        .alpha(0.85f)
+                        .padding(top = 2.dp),
+                    text = "Group",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }

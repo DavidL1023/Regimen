@@ -102,14 +102,11 @@ fun MainScreen() {
         else -> ""
     }
 
-    // Hide toolbar on scroll behavior
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
-
-
     Scaffold(
         bottomBar = { BottomBar(navController = navController) },
         topBar = {
             LargeTopAppBar(
+                modifier = Modifier.padding(bottom = 16.dp),
                 title = {
                     Column() {
                         Text(
@@ -123,15 +120,14 @@ fun MainScreen() {
                         HorizontalDivider(
                             modifier = Modifier
                                 .alpha(0.4f)
-                                .padding(top = 10.dp, end = 16.dp))
+                                .padding(top = 14.dp, end = 16.dp))
 
                     }
                 },
                 actions = {
                     dynamicScaffoldState.toolbarActions?.invoke(this)
-                },
-                scrollBehavior = scrollBehavior,
-                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+                }
+
             )
         },
         floatingActionButton = {
