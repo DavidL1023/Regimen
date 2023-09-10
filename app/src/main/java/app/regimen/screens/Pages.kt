@@ -105,14 +105,15 @@ fun LazyPageGrid() {
         columns = StaggeredGridCells.Fixed(2),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalItemSpacing = 8.dp,
         content = {
             item {
                 Spacer(modifier = Modifier.height(10.dp))
             }
 
-            items(5) { index ->
+            items(10) { index ->
                 PageCard(true)
             }
 
@@ -134,7 +135,7 @@ fun SortExpandable() {
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
         modifier = Modifier
-            .padding(start = 24.dp)
+            .padding(start = 16.dp)
     ) {
         OutlinedTextField(
             modifier = Modifier.menuAnchor(),
@@ -182,7 +183,6 @@ fun PageCard(displayGroup: Boolean) {
         modifier = Modifier
             .heightIn(min = 80.dp, max = 200.dp)
             .fillMaxWidth()
-            .padding(bottom = 8.dp)
             .shadow(elevation = 4.dp, shape = MaterialTheme.shapes.medium)
     ) {
         Column(
@@ -197,7 +197,7 @@ fun PageCard(displayGroup: Boolean) {
             )
             Text(
                 text = "Header",
-                style = MaterialTheme.typography.titleSmall
+                style = MaterialTheme.typography.titleMedium
             )
             Text(
                 style = MaterialTheme.typography.bodyMedium,
@@ -226,7 +226,7 @@ fun PageSearchBar() {
     DockedSearchBar(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         query = text,
         onQueryChange = {
             text = it

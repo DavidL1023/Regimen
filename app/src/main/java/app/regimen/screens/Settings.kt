@@ -70,7 +70,7 @@ fun SettingsScreen(
     ) {
 
         // Bring user to android notification page
-        Row (modifier = Modifier.padding(start = 20.dp),
+        Row (modifier = Modifier.padding(start = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
@@ -89,14 +89,14 @@ fun SettingsScreen(
             style = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Normal
             ),
-            modifier = Modifier.padding(start = 24.dp),
+            modifier = Modifier.padding(start = 16.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         NotificationsButton()
 
         // Theme selection setting
-        Row (modifier = Modifier.padding(start = 20.dp),
+        Row (modifier = Modifier.padding(start = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
@@ -115,7 +115,7 @@ fun SettingsScreen(
                 fontWeight = FontWeight.Normal
             ),
             modifier = Modifier
-                .padding(start = 24.dp),
+                .padding(start = 16.dp),
             text = "Select app theme.",
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -123,7 +123,7 @@ fun SettingsScreen(
         ThemeRadio()
 
         // Password settings
-        Row (modifier = Modifier.padding(start = 20.dp),
+        Row (modifier = Modifier.padding(start = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
@@ -142,7 +142,7 @@ fun SettingsScreen(
             style = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Normal
             ),
-            modifier = Modifier.padding(start = 24.dp),
+            modifier = Modifier.padding(start = 16.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -158,7 +158,7 @@ fun SetPasswordButton() {
         onClick = {  },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 24.dp, end = 24.dp),
+            .padding(horizontal = 16.dp),
         enabled = false
     ) {
         Icon(
@@ -185,7 +185,7 @@ fun PasswordSwitch() {
         Text(
             text = "Enable Passcode",
             style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(start = 24.dp)
+            modifier = Modifier.padding(start = 16.dp)
         )
 
         Spacer(modifier = Modifier.weight(1f)) // Keep switch on the right side of screen
@@ -193,7 +193,7 @@ fun PasswordSwitch() {
         Switch(
             checked = passcodeChecked,
             onCheckedChange = { passcodeChecked = it },
-            modifier = Modifier.padding(end = 24.dp)
+            modifier = Modifier.padding(end = 16.dp)
         )
     }
 }
@@ -214,18 +214,18 @@ fun ThemeRadio() {
                         onClick = { onOptionSelected(text) },
                         role = Role.RadioButton
                     )
-                    .padding(horizontal = 24.dp),
+                    .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 RadioButton(
                     selected = (text == selectedOption),
                     onClick = null,
-                    modifier = Modifier.padding(start = 24.dp)
+                    modifier = Modifier.padding(start = 16.dp)
                 )
                 Text(
                     text = text,
                     style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(start = 24.dp)
+                    modifier = Modifier.padding(start = 16.dp)
                 )
             }
         }
@@ -239,7 +239,7 @@ fun NotificationsButton() {
         onClick = { openNotificationSettings(context) },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 24.dp, end = 24.dp, top = 8.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp),
     ) {
         Icon(
             Icons.Filled.Notifications,

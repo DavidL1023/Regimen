@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,8 +22,11 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.HeartBroken
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ButtonDefaults
@@ -48,10 +52,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import app.regimen.DynamicScaffoldState
+import app.regimen.fadingEdge
 
 @Composable
 fun GroupsScreen(
@@ -160,7 +167,7 @@ fun toggleableTextButton() : Boolean {
 
     TextButton(
         modifier = Modifier
-            .padding(start = 14.dp),
+            .padding(start = 8.dp),
         onClick = {
             isClicked = !isClicked
 
@@ -188,7 +195,7 @@ fun toggleableTextButton() : Boolean {
 fun RemindersGroupTab() {
     LazyColumn(modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 24.dp),
+        .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         content = {
 
@@ -207,8 +214,8 @@ fun RemindersGroupTab() {
 fun PagesGroupTab() {
     LazyColumn(modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         content = {
 
             items(5) { index ->
@@ -239,14 +246,22 @@ fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
             .background(
                 color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
                 shape = RoundedCornerShape(16.dp)
-            ),
-        contentAlignment = Alignment.Center
+            )
     ) {
+        Icon(
+            imageVector = Icons.Default.Favorite,
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(28.dp)
+        )
 
         Text(
             text = "Group $name",
             style = textStyle,
-            modifier = Modifier.padding(9.dp)
+            modifier = Modifier
+                .padding(12.dp)
+                .align(Alignment.BottomCenter)
         )
     }
 }
@@ -260,8 +275,12 @@ fun ExpandableGroupList(isVisible: Boolean) {
     val targetHeight = if (isVisible) 140.dp else 0.dp
     val animatedHeight by animateDpAsState(targetValue = targetHeight)
 
+    val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.03f to Color.Red, 0.97f to Color.Red, 1f to Color.Transparent)
+
     LazyRow(
-        modifier = Modifier.height(animatedHeight),
+        modifier = Modifier
+            .height(animatedHeight)
+            .fadingEdge(leftRightFade),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
 

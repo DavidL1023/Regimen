@@ -59,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
@@ -69,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import app.regimen.DynamicScaffoldState
+import app.regimen.fadingEdge
 import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -120,7 +122,7 @@ fun LazyReminderColumn() {
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         content = {
             item {
@@ -204,9 +206,11 @@ fun ReminderCard(displayGroup: Boolean) {
 @Composable
 private fun CalendarFilterChips() {
     val selectedChipIndex = remember { mutableIntStateOf(0) }
+    val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.08f to Color.Red, 0.92f to Color.Red, 1f to Color.Transparent)
 
     LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fadingEdge(leftRightFade)
     ) {
 
         item {
@@ -285,7 +289,7 @@ fun CategoryFilterSegmented() {
     SingleChoiceSegmentedButtonRow (
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
     ) {
         options.forEachIndexed { index, label ->
             SegmentedButton(
