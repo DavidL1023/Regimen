@@ -2,6 +2,7 @@ package app.regimen.screens
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,7 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -40,7 +43,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -154,7 +160,7 @@ fun toggleableTextButton() : Boolean {
 
     TextButton(
         modifier = Modifier
-            .padding(start = 16.dp),
+            .padding(start = 14.dp),
         onClick = {
             isClicked = !isClicked
 
@@ -218,48 +224,54 @@ fun PagesGroupTab() {
 
 @Composable
 fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
+
     val textStyle = if (selected) {
         MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
     } else {
         MaterialTheme.typography.bodyLarge
     }
 
-    ListItem(
+    Box(
         modifier = Modifier
+            .size(140.dp)
+            .clip(RoundedCornerShape(16.dp)) // allows ripple to match shape
             .clickable { onSelectedChange() }
-            .padding(horizontal = 12.dp),
-        headlineContent = { Text("Group $name", style = textStyle) },
-        trailingContent = {
-            if (selected) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                )
-            }
-        },
-        leadingContent = {
-            Icon(
-                imageVector = Icons.Filled.Favorite,
-                contentDescription = null,
-            )
-        }
-    )
+            .background(
+                color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
+                shape = RoundedCornerShape(16.dp)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+
+        Text(
+            text = "Group $name",
+            style = textStyle,
+            modifier = Modifier.padding(9.dp)
+        )
+    }
 }
+
 
 
 @Composable
 fun ExpandableGroupList(isVisible: Boolean) {
     var selectedItem by remember { mutableIntStateOf(0) }
 
-    val targetHeight = if (isVisible) 180.dp else 0.dp
+    val targetHeight = if (isVisible) 140.dp else 0.dp
     val animatedHeight by animateDpAsState(targetValue = targetHeight)
 
-    LazyColumn(
-        modifier = Modifier.height(animatedHeight)
+    LazyRow(
+        modifier = Modifier.height(animatedHeight),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+
+        item {
+            Spacer(modifier = Modifier.width(16.dp))
+        }
 
         items(5) { index ->
             val isSelected = selectedItem == index
+
             GroupItem(
                 name = index.toString(),
                 selected = isSelected,
@@ -267,6 +279,10 @@ fun ExpandableGroupList(isVisible: Boolean) {
                     selectedItem = if (isSelected) -1 else index
                 }
             )
+        }
+
+        item {
+            Spacer(modifier = Modifier.width(16.dp))
         }
 
     }

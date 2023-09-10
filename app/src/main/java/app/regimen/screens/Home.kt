@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -205,10 +206,13 @@ private fun CalendarFilterChips() {
     val selectedChipIndex = remember { mutableIntStateOf(0) }
 
     LazyRow(
-        modifier = Modifier
-            .padding(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+
+        item {
+            Spacer(modifier = Modifier.width(14.dp))
+        }
+
         items(14) { index ->
             val isSelected = index == selectedChipIndex.intValue
 
@@ -218,6 +222,10 @@ private fun CalendarFilterChips() {
                 topText = "Thu",
                 bottomText = "${index + 1}"
             )
+        }
+
+        item {
+            Spacer(modifier = Modifier.width(14.dp))
         }
     }
 }
@@ -250,7 +258,7 @@ private fun VerticalChip(
                 text = topText,
                 modifier = Modifier
                     .padding(horizontal = 2.dp)
-                    .alpha(if (isSelected) 1f else 0.7f),
+                    .alpha(if (isSelected) 1f else 0.65f),
                 style = MaterialTheme.typography.titleSmall
             )
             Spacer(modifier = Modifier.height(14.dp))
