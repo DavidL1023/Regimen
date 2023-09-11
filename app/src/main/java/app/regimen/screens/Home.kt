@@ -1,5 +1,6 @@
 package app.regimen.screens
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -159,7 +160,10 @@ fun ReminderCard(displayGroup: Boolean) {
 
                 Text(
                     modifier = Modifier
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape) // Oval background
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            CircleShape
+                        ) // Oval background
                         .padding(8.dp), // Padding for the oval background
                     text = "Type",
                     style = MaterialTheme.typography.labelMedium
@@ -205,12 +209,14 @@ fun ReminderCard(displayGroup: Boolean) {
 
 @Composable
 private fun CalendarFilterChips() {
-    val selectedChipIndex = remember { mutableIntStateOf(0) }
-    val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.08f to Color.Red, 0.92f to Color.Red, 1f to Color.Transparent)
+    val selectedChipIndex = remember { mutableIntStateOf(-1) }
+    val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.03f to Color.Red, 0.97f to Color.Red, 1f to Color.Transparent)
 
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.fadingEdge(leftRightFade)
+        modifier = Modifier
+            .fadingEdge(leftRightFade)
+            .height(80.dp)
     ) {
 
         item {
@@ -219,10 +225,10 @@ private fun CalendarFilterChips() {
 
         items(14) { index ->
             val isSelected = index == selectedChipIndex.intValue
-
+            val selectedIndex = if (isSelected) -1 else index
             VerticalChip(
                 isSelected = isSelected,
-                onClick = { selectedChipIndex.intValue = index },
+                onClick = { selectedChipIndex.intValue = selectedIndex },
                 topText = "Thu",
                 bottomText = "${index + 1}"
             )
@@ -252,7 +258,8 @@ private fun VerticalChip(
                 color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background,
                 shape = RoundedCornerShape(14.dp)
             )
-            .padding(9.dp),
+            .padding(9.dp)
+            .height(animateDpAsState(if (isSelected) 62.dp else 52.dp).value),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -293,11 +300,11 @@ fun CategoryFilterSegmented() {
     ) {
         options.forEachIndexed { index, label ->
             SegmentedButton(
-                shape = SegmentedButtonDefaults.shape(position = index, count = options.size),
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 onClick = { selectedIndex = index },
                 selected = index == selectedIndex,
                 icon = {
-                    SegmentedButtonDefaults.SegmentedButtonIcon(
+                    SegmentedButtonDefaults.Icon(
                         active = index == selectedIndex,
                         inactiveContent = {
                             icons[index]?.let {

@@ -1,5 +1,6 @@
 package app.regimen.screens
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -110,7 +111,7 @@ fun LazyPageGrid() {
         verticalItemSpacing = 8.dp,
         content = {
             item {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
             items(10) { index ->
@@ -244,7 +245,9 @@ fun PageSearchBar() {
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = null
+                contentDescription = null,
+                modifier = Modifier
+                    .size(animateDpAsState(if (active) 25.dp else 20.dp).value)
             )
         },
         trailingIcon = {

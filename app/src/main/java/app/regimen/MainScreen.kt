@@ -28,6 +28,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.NotificationAdd
+import androidx.compose.material.icons.outlined.CreateNewFolder
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.NotificationAdd
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -110,7 +113,6 @@ fun MainScreen() {
         bottomBar = { BottomBar(navController = navController) },
         topBar = {
             LargeTopAppBar(
-                modifier = Modifier.padding(bottom = 16.dp),
                 title = {
                     Column() {
                         Text(
@@ -124,7 +126,7 @@ fun MainScreen() {
                         HorizontalDivider(
                             modifier = Modifier
                                 .alpha(0.4f)
-                                .padding(top = 14.dp, end = 16.dp))
+                                .padding(top = 10.dp, end = 16.dp))
 
                     }
                 },
@@ -371,9 +373,9 @@ data class DynamicScaffoldState(
 // Fab button icon
 private fun getFabIconForDestination(destination: NavDestination?): ImageVector {
     return when (destination?.route) {
-        BottomBarScreen.Home.route -> Icons.Default.NotificationAdd
-        BottomBarScreen.Pages.route -> Icons.Default.Edit
-        BottomBarScreen.Groups.route -> Icons.Default.CreateNewFolder
+        BottomBarScreen.Home.route -> Icons.Outlined.NotificationAdd
+        BottomBarScreen.Pages.route -> Icons.Outlined.Edit
+        BottomBarScreen.Groups.route -> Icons.Outlined.CreateNewFolder
         else -> Icons.Filled.Add // Default icon
     }
 }

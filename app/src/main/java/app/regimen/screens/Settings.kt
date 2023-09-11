@@ -66,7 +66,7 @@ fun SettingsScreen(
 
     // Settings column
     Column(
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
 
         // Bring user to android notification page

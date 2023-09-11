@@ -1,7 +1,20 @@
 package app.regimen.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Left
+import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Right
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.EaseIn
+import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.with
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +43,7 @@ import androidx.compose.material.icons.filled.HeartBroken
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -90,75 +104,99 @@ fun GroupsScreen(
     ) {
 
         // Tab selector (includes group list)
-        GroupTab()
+        GroupTabs()
 
     }
 }
 
+// The tabs for filtering
+enum class GroupTabsEnum {
+    Reminders,
+    Pages
+}
 @Composable
-fun GroupTab () {
-    var state by remember { mutableIntStateOf(0) }
-    val titles = listOf("Reminders", "Pages")
+fun GroupTabs() {
+    var state by remember { mutableStateOf(GroupTabsEnum.Reminders) }
+    val titles = GroupTabsEnum.values().toList()
     val icons = listOf(Icons.Default.CalendarMonth, Icons.Default.Description)
 
-    Column (
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         TabRow(
-            selectedTabIndex = state,
+            selectedTabIndex = state.ordinal,
             indicator = { tabPositions ->
-                if (state < tabPositions.size) {
+                if (state.ordinal < tabPositions.size) {
                     TabRowDefaults.PrimaryIndicator(
-                        modifier = Modifier
-                            .tabIndicatorOffset(tabPositions[state]),
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[state.ordinal]),
                         shape = RoundedCornerShape(
                             topStart = 3.dp,
                             topEnd = 3.dp,
                             bottomEnd = 0.dp,
                             bottomStart = 0.dp,
                         ),
+                        width = animateDpAsState(if (state == GroupTabsEnum.Reminders) 80.dp else 50.dp).value
                     )
                 }
-            }
+            },
+            divider = { HorizontalDivider(
+                modifier = Modifier
+                    .alpha(0.8f)
+                    .padding(horizontal = 24.dp)
+            ) }
         ) {
             titles.forEachIndexed { index, title ->
                 Tab(
-                    selected = state == index,
-                    onClick = { state = index },
-                    text = { Text(
-                        text = title,
-                        color = if (state == index)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.secondary
-                        ) },
+                    modifier = Modifier.clip(RoundedCornerShape(24.dp)),
+                    selected = state == title,
+                    onClick = { state = title },
+                    text = { Text(text = title.name) },
                     icon = { Icon(
                         imageVector = icons[index],
                         contentDescription = null,
-                        tint = if (state == index)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(22.dp)
-                    ) }
+                    )},
+                    unselectedContentColor = MaterialTheme.colorScheme.secondary
                 )
             }
         }
 
         // Display group list
-        Column{
-            val isButtonClicked  = toggleableTextButton()
+        Column {
+            val isButtonClicked = toggleableTextButton()
             ExpandableGroupList(isButtonClicked)
         }
 
-        // Display tab content
-        if (state == 0) {
-            RemindersGroupTab()
-        } else {
-            PagesGroupTab()
-        }
+        // Display tab content with animated slide
+        AnimatedContent(
+            targetState = state,
+            content = { selectedTab ->
+                when (selectedTab) {
+                    GroupTabsEnum.Reminders -> RemindersGroupTab()
+                    GroupTabsEnum.Pages -> PagesGroupTab()
+                }
+            },
+            transitionSpec = {
+                slideIntoContainer(
+                    animationSpec = tween(300, easing = EaseIn),
+                    towards = when (state) {
+                        GroupTabsEnum.Reminders -> Right
+                        GroupTabsEnum.Pages -> Left
+                    }
+                ).togetherWith(
+                    slideOutOfContainer(
+                        animationSpec = tween(300, easing = EaseOut),
+                        towards = when (state) {
+                            GroupTabsEnum.Reminders -> Right
+                            GroupTabsEnum.Pages -> Left
+                        }
+                    )
+                )
+            }
+        )
     }
 }
+
 
 // Return clicked boolean to enable / disable
 @Composable
@@ -190,7 +228,7 @@ fun toggleableTextButton() : Boolean {
     return isClicked
 }
 
-
+// Tab content for reminders
 @Composable
 fun RemindersGroupTab() {
     LazyColumn(modifier = Modifier
@@ -210,6 +248,7 @@ fun RemindersGroupTab() {
     )
 }
 
+// Tab content for pages
 @Composable
 fun PagesGroupTab() {
     LazyColumn(modifier = Modifier
@@ -229,6 +268,7 @@ fun PagesGroupTab() {
     )
 }
 
+// Item for horizontal list of group selection
 @Composable
 fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
 
@@ -240,7 +280,7 @@ fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
 
     Box(
         modifier = Modifier
-            .size(140.dp)
+            .size(animateDpAsState(if (selected) 130.dp else 120.dp).value)
             .clip(RoundedCornerShape(16.dp)) // allows ripple to match shape
             .clickable { onSelectedChange() }
             .background(
@@ -266,13 +306,12 @@ fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
     }
 }
 
-
-
+// Expandable group row
 @Composable
 fun ExpandableGroupList(isVisible: Boolean) {
     var selectedItem by remember { mutableIntStateOf(0) }
 
-    val targetHeight = if (isVisible) 140.dp else 0.dp
+    val targetHeight = if (isVisible) 138.dp else 0.dp
     val animatedHeight by animateDpAsState(targetValue = targetHeight)
 
     val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.03f to Color.Red, 0.97f to Color.Red, 1f to Color.Transparent)
@@ -285,7 +324,7 @@ fun ExpandableGroupList(isVisible: Boolean) {
     ) {
 
         item {
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(8.dp))
         }
 
         items(5) { index ->
@@ -301,7 +340,7 @@ fun ExpandableGroupList(isVisible: Boolean) {
         }
 
         item {
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(8.dp))
         }
 
     }
