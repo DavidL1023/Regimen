@@ -70,7 +70,7 @@ fun SettingsScreen(
     ) {
 
         // Bring user to android notification page
-        Row (modifier = Modifier.padding(start = 16.dp),
+        Row (modifier = Modifier.padding(start = 16.dp, top = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -112,24 +113,13 @@ fun MainScreen() {
     Scaffold(
         bottomBar = { BottomBar(navController = navController) },
         topBar = {
-            LargeTopAppBar(
-                title = {
-                    Column() {
-                        Text(
-                            text = titleText,
-                            style = MaterialTheme.typography.displaySmall)
-                        Text(
-                            modifier = Modifier.alpha(0.6f),
-                            text = subtitleText,
-                            style = MaterialTheme.typography.labelLarge)
-
-                        HorizontalDivider(
-                            modifier = Modifier
-                                .alpha(0.4f)
-                                .padding(top = 10.dp, end = 16.dp))
-
-                    }
-                },
+            CustomTopAppBar(
+                title = titleText,
+                subtitle = subtitleText,
+                showDivider = currentDestination?.route in listOf(
+                    BottomBarScreen.Home.route,
+                    BottomBarScreen.Groups.route
+                ),
                 actions = {
                     dynamicScaffoldState.toolbarActions?.invoke(this)
                 }
@@ -201,6 +191,55 @@ fun MainScreen() {
 
     }
 }
+
+// Custom top app bar that supports subtitle
+@Composable
+fun CustomTopAppBar(
+    title: String,
+    subtitle: String,
+    showDivider: Boolean,
+    actions: @Composable RowScope.() -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .fillMaxWidth()
+    ) {
+        Spacer(modifier = Modifier.padding(top = 16.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.displaySmall
+                )
+                Text(
+                    modifier = Modifier.alpha(0.6f),
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+
+            // Place actions on the right side of the top app bar
+            actions()
+        }
+
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier
+                    .alpha(0.4f)
+                    .padding(top = 10.dp)
+            )
+        }
+    }
+}
+
 
 // Generate the bottom nav bar
 @Composable
@@ -373,9 +412,9 @@ data class DynamicScaffoldState(
 // Fab button icon
 private fun getFabIconForDestination(destination: NavDestination?): ImageVector {
     return when (destination?.route) {
-        BottomBarScreen.Home.route -> Icons.Outlined.NotificationAdd
-        BottomBarScreen.Pages.route -> Icons.Outlined.Edit
-        BottomBarScreen.Groups.route -> Icons.Outlined.CreateNewFolder
+        BottomBarScreen.Home.route -> Icons.Filled.NotificationAdd
+        BottomBarScreen.Pages.route -> Icons.Filled.Edit
+        BottomBarScreen.Groups.route -> Icons.Filled.CreateNewFolder
         else -> Icons.Filled.Add // Default icon
     }
 }
