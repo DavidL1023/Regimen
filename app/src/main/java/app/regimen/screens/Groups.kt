@@ -7,9 +7,11 @@ import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -320,7 +322,7 @@ fun ExpandableGroupList(isVisible: Boolean) {
     var selectedItem by remember { mutableIntStateOf(0) }
 
     val targetHeight = if (isVisible) 138.dp else 0.dp
-    val animatedHeight by animateDpAsState(targetValue = targetHeight)
+    val animatedHeight by animateDpAsState(targetValue = targetHeight, animationSpec = spring(dampingRatio = 2f))
 
     val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.03f to Color.Red, 0.97f to Color.Red, 1f to Color.Transparent)
 

@@ -18,10 +18,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,6 +38,7 @@ import androidx.compose.material.icons.outlined.NotificationAdd
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
@@ -128,17 +132,15 @@ fun MainScreen() {
         },
         floatingActionButton = {
             if (currentDestination?.route != BottomBarScreen.Settings.route) {
-                val fabIcon = getFabIconForDestination(currentDestination)
-                FloatingActionButton(
-                    onClick = {
-                        dynamicScaffoldState.fabOnClick?.invoke()
-                    }
-                ) {
-                    Icon(imageVector = fabIcon, contentDescription = null)
-                }
+                CustomFloatingActionButton(
+                    expandable = currentDestination?.route in listOf(
+                        BottomBarScreen.Home.route
+                    ),
+                    onFabClick = { dynamicScaffoldState.fabOnClick?.invoke() },
+                    fabIcon = getFabIconForDestination(currentDestination)
+                )
             }
         }
-
     ) {
 
         // MAIN NAV HOST
@@ -192,6 +194,79 @@ fun MainScreen() {
     }
 }
 
+// Custom fab that allows for displaying extended content
+@Composable
+fun CustomFloatingActionButton(
+    expandable: Boolean,
+    onFabClick: () -> Unit,
+    fabIcon: ImageVector
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    if (!expandable) { // Close the expanded fab if you change to non expandable nav destination
+        isExpanded = false
+    }
+
+    val fabSize = 64.dp
+    val expandedFabWidth by animateDpAsState(
+        targetValue = if (isExpanded) 200.dp else fabSize,
+        animationSpec = spring(dampingRatio = 3f)
+    )
+    val expandedFabHeight by animateDpAsState(
+        targetValue = if (isExpanded) 58.dp else fabSize,
+        animationSpec = spring(dampingRatio = 3f)
+    )
+
+    Column {
+
+        // ExpandedBox over the FAB
+        Box(
+            modifier = Modifier
+                .offset(y = (25).dp)
+                .size(
+                    width = expandedFabWidth,
+                    height = (animateDpAsState(if (isExpanded) 225.dp else 0.dp, animationSpec = spring(dampingRatio = 3f))).value)
+                .background(
+                    MaterialTheme.colorScheme.surfaceContainer,
+                    shape = RoundedCornerShape(18.dp)
+                )
+        ) {
+            // Customize the content of the expanded box as needed
+        }
+
+        FloatingActionButton(
+            onClick = {
+                onFabClick()
+                if (expandable) {
+                    isExpanded = !isExpanded
+                }
+            },
+            modifier = Modifier
+                .width(expandedFabWidth)
+                .height(expandedFabHeight),
+            shape = RoundedCornerShape(18.dp)
+
+        ) {
+
+            Icon(
+                imageVector = fabIcon,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(24.dp)
+                    .offset(x = animateDpAsState(if (isExpanded) -70.dp else 0.dp, animationSpec = spring(dampingRatio = 3f)).value)
+            )
+
+            Text(
+                text = "Create Reminder",
+                softWrap = false,
+                modifier = Modifier
+                    .offset(x = animateDpAsState(if (isExpanded) 10.dp else 50.dp, animationSpec = spring(dampingRatio = 3f)).value)
+                    .alpha(animateFloatAsState(if (isExpanded) 1f else 0f, animationSpec = spring(dampingRatio = 3f)).value)
+            )
+
+        }
+    }
+}
+
 // Custom top app bar that supports subtitle
 @Composable
 fun CustomTopAppBar(
@@ -202,7 +277,7 @@ fun CustomTopAppBar(
 ) {
     Column(
         modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
             .fillMaxWidth()
     ) {
         Spacer(modifier = Modifier.padding(top = 16.dp))
