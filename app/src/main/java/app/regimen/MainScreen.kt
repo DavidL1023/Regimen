@@ -206,7 +206,7 @@ fun CustomFloatingActionButton(
         isExpanded = false
     }
 
-    val fabSize = 64.dp
+    val fabSize = 68.dp
     val expandedFabWidth by animateDpAsState(
         targetValue = if (isExpanded) 200.dp else fabSize,
         animationSpec = spring(dampingRatio = 3f)
