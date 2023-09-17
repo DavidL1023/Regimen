@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.HeartBroken
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
@@ -209,12 +210,16 @@ fun toggleableTextButton() : Boolean {
 
     TextButton(
         modifier = Modifier
-            .padding(start = 8.dp),
+            .padding(start = 12.dp),
         onClick = {
             isClicked = !isClicked
 
         }
     ) {
+        Icon(
+            imageVector = Icons.Default.FilterList,
+            contentDescription = null,
+        )
         Spacer(Modifier.size(ButtonDefaults.IconSpacing))
         Text(
             text = "Select Group",

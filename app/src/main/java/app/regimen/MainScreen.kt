@@ -1,10 +1,12 @@
 package app.regimen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -29,9 +31,12 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.NotificationAdd
+import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.NotificationAdd
@@ -213,7 +218,7 @@ fun CustomFloatingActionButton(
     )
     val expandedFabHeight by animateDpAsState(
         targetValue = if (isExpanded) 58.dp else fabSize,
-        animationSpec = spring(dampingRatio = 3f)
+        animationSpec = spring(dampingRatio = 4f)
     )
 
     Column {
@@ -224,14 +229,17 @@ fun CustomFloatingActionButton(
                 .offset(y = (25).dp)
                 .size(
                     width = expandedFabWidth,
-                    height = (animateDpAsState(if (isExpanded) 225.dp else 0.dp, animationSpec = spring(dampingRatio = 3f))).value)
+                    height = (animateDpAsState(if (isExpanded) 200.dp else 0.dp, animationSpec = spring(dampingRatio = 4f))).value)
                 .background(
                     MaterialTheme.colorScheme.surfaceContainer,
                     shape = RoundedCornerShape(18.dp)
                 )
         ) {
-            // Customize the content of the expanded box as needed
+
+            // Customize the content of the expanded box
+            HomeScreenFabBox(isExpanded)
         }
+
 
         FloatingActionButton(
             onClick = {
@@ -251,19 +259,100 @@ fun CustomFloatingActionButton(
                 imageVector = fabIcon,
                 contentDescription = null,
                 modifier = Modifier
-                    .size(24.dp)
-                    .offset(x = animateDpAsState(if (isExpanded) -70.dp else 0.dp, animationSpec = spring(dampingRatio = 3f)).value)
+                    .size(26.dp)
+                    .offset(
+                        x = animateDpAsState(
+                            if (isExpanded) -70.dp else 0.dp,
+                            animationSpec = spring(dampingRatio = 3f)
+                        ).value)
             )
 
             Text(
                 text = "Create Reminder",
                 softWrap = false,
                 modifier = Modifier
-                    .offset(x = animateDpAsState(if (isExpanded) 10.dp else 50.dp, animationSpec = spring(dampingRatio = 3f)).value)
-                    .alpha(animateFloatAsState(if (isExpanded) 1f else 0f, animationSpec = spring(dampingRatio = 3f)).value)
+                    .offset(
+                        x = animateDpAsState(
+                            if (isExpanded) 10.dp else 50.dp,
+                            animationSpec = spring(dampingRatio = 3f)
+                        ).value)
+                    .alpha(
+                        animateFloatAsState(
+                            targetValue = if (isExpanded) 1f else 0f,
+                            animationSpec = tween(
+                                durationMillis = if (isExpanded) 400 else 100,
+                                delayMillis = if (isExpanded) 100 else 0,
+                                easing = EaseIn
+                            )
+                        ).value)
+            )
+        }
+    }
+}
+
+// A row for the Fab box
+@Composable
+fun RemindMeRow(icon: ImageVector, text: String, isExpanded: Boolean, onClick: () -> Unit, enterDelay: Int) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(16.dp)
+            .fillMaxWidth()
+            .alpha(
+                animateFloatAsState(
+                    targetValue = if (isExpanded) 1f else 0f,
+                    animationSpec = tween(
+                        durationMillis = if (isExpanded) 400 else 100,
+                        delayMillis = if (isExpanded) enterDelay else 0,
+                        easing = EaseIn
+                    )
+                ).value
             )
 
-        }
+    ) {
+        Icon(
+            modifier = Modifier.size(26.dp),
+            imageVector = icon,
+            contentDescription = null,
+        )
+
+        Text(
+            text = text,
+            softWrap = false
+        )
+    }
+}
+
+// Expandable box for when fab is clicked on home screen
+@Composable
+fun HomeScreenFabBox(isExpanded: Boolean) {
+    Column {
+        RemindMeRow(
+            icon = Icons.Filled.SelfImprovement,
+            text = "Habit",
+            isExpanded = isExpanded,
+            onClick = {},
+            enterDelay = 500
+        )
+
+        RemindMeRow(
+            icon = Icons.Filled.EventRepeat,
+            text = "Recurring",
+            isExpanded = isExpanded,
+            onClick = {},
+            enterDelay = 350
+        )
+
+        RemindMeRow(
+            icon = Icons.Filled.CalendarMonth,
+            text = "Single Time",
+            isExpanded = isExpanded,
+            onClick = {},
+            enterDelay = 200
+        )
     }
 }
 
@@ -343,7 +432,7 @@ fun CustomNavBar(
         Modifier
             .shadow(5.dp)
             .background(color = MaterialTheme.colorScheme.surface)
-            .height(64.dp)
+            .height(65.dp)
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
