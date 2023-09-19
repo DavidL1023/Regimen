@@ -15,44 +15,30 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cached
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SingleChoiceSegmentedButtonRowScope
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -62,23 +48,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import app.regimen.DynamicScaffoldState
+import app.regimen.PreferenceDataStore
+import app.regimen.RemindMeRow
 import app.regimen.fadingEdge
-import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onComposing: (DynamicScaffoldState) -> Unit,
-    navController: NavController
+    navController: NavController,
+    dataStoreSingleton: PreferenceDataStore
 ) {
     // Dynamic toolbar
     LaunchedEffect(key1 = true) {
@@ -94,12 +75,11 @@ fun HomeScreen(
                 },
                 fabOnClick = {
 
-                }
+                },
+                fabBoxContent = { isExpanded -> HomeScreenFabBox(isExpanded) }
             )
         )
     }
-
-
 
     // Home column
     Column (
@@ -118,6 +98,37 @@ fun HomeScreen(
 
 }
 
+// Expandable box for when fab is clicked on home screen
+@Composable
+fun HomeScreenFabBox(isExpanded: Boolean) {
+    Column {
+        RemindMeRow(
+            icon = Icons.Filled.SelfImprovement,
+            text = "Habit",
+            isExpanded = isExpanded,
+            onClick = { },
+            enterDelay = 500
+        )
+
+        RemindMeRow(
+            icon = Icons.Filled.EventRepeat,
+            text = "Recurring",
+            isExpanded = isExpanded,
+            onClick = { },
+            enterDelay = 350
+        )
+
+        RemindMeRow(
+            icon = Icons.Filled.CalendarMonth,
+            text = "Single Time",
+            isExpanded = isExpanded,
+            onClick = { },
+            enterDelay = 200
+        )
+    }
+}
+
+// Column for the reminder cards
 @Composable
 fun LazyReminderColumn() {
     LazyColumn(
@@ -141,6 +152,7 @@ fun LazyReminderColumn() {
     )
 }
 
+// A reminder card
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReminderCard(displayGroup: Boolean) {
@@ -206,7 +218,7 @@ fun ReminderCard(displayGroup: Boolean) {
 }
 
 
-
+// Row of calendar filter chips
 @Composable
 private fun CalendarFilterChips() {
     val selectedChipIndex = remember { mutableIntStateOf(-1) }
@@ -220,7 +232,7 @@ private fun CalendarFilterChips() {
     ) {
 
         item {
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(10.dp))
         }
 
         items(14) { index ->
@@ -235,12 +247,12 @@ private fun CalendarFilterChips() {
         }
 
         item {
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(10.dp))
         }
     }
 }
 
-
+// A calendar chip
 @Composable
 private fun VerticalChip(
     isSelected: Boolean,
@@ -281,7 +293,7 @@ private fun VerticalChip(
     }
 }
 
-
+// Segmented filter button for categories
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryFilterSegmented() {

@@ -1,22 +1,13 @@
 package app.regimen.screens
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Left
 import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Right
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.EaseIn
-import androidx.compose.animation.core.EaseOut
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.with
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,23 +26,16 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.HeartBroken
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -77,12 +61,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import app.regimen.DynamicScaffoldState
+import app.regimen.PreferenceDataStore
 import app.regimen.fadingEdge
 
 @Composable
 fun GroupsScreen(
     onComposing: (DynamicScaffoldState) -> Unit,
-    navController: NavController
+    navController: NavController,
+    dataStoreSingleton: PreferenceDataStore
 ) {
     // Dynamic toolbar
     LaunchedEffect(key1 = true) {
@@ -183,14 +169,14 @@ fun GroupTabs() {
             },
             transitionSpec = {
                 slideIntoContainer(
-                    animationSpec = tween(300, easing = EaseIn),
+                    animationSpec = tween(300),
                     towards = when (state) {
                         GroupTabsEnum.Reminders -> Right
                         GroupTabsEnum.Pages -> Left
                     }
                 ).togetherWith(
                     slideOutOfContainer(
-                        animationSpec = tween(300, easing = EaseOut),
+                        animationSpec = tween(300),
                         towards = when (state) {
                             GroupTabsEnum.Reminders -> Right
                             GroupTabsEnum.Pages -> Left
@@ -349,7 +335,9 @@ fun ExpandableGroupList(isVisible: Boolean) {
                 name = index.toString(),
                 selected = isSelected,
                 onSelectedChange = {
-                    selectedItem = if (isSelected) -1 else index
+                    if (isVisible) { // Fixes bug where it can be selected even when folded
+                        selectedItem = if (isSelected) -1 else index
+                    }
                 }
             )
         }

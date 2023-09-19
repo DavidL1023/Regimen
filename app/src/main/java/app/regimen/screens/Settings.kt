@@ -3,8 +3,6 @@ package app.regimen.screens
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,12 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CircleNotifications
-import androidx.compose.material.icons.filled.FlagCircle
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,25 +35,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat.startActivity
 import androidx.navigation.NavController
 import app.regimen.DynamicScaffoldState
+import app.regimen.PreferenceDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
     onComposing: (DynamicScaffoldState) -> Unit,
-    navController: NavController
+    navController: NavController,
+    dataStoreSingleton: PreferenceDataStore
 ) {
+
     // Dynamic toolbar
     LaunchedEffect(key1 = true) {
         onComposing(
             DynamicScaffoldState(
                 toolbarActions = {
+                    // Add toolbar actions if needed
                 }
             )
         )
@@ -68,22 +66,8 @@ fun SettingsScreen(
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-
-        // Bring user to android notification page
-        Row (modifier = Modifier.padding(start = 16.dp, top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Notifications,
-                contentDescription = null
-            )
-
-            Text(
-                text = "Notifications",
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-
+        // Notification Row
+        NotificationRow()
         Text(
             text = "Set how you want to be notified.",
             style = MaterialTheme.typography.titleSmall.copy(
@@ -92,51 +76,22 @@ fun SettingsScreen(
             modifier = Modifier.padding(start = 16.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-
         NotificationsButton()
 
-        // Theme selection setting
-        Row (modifier = Modifier.padding(start = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Visibility,
-                contentDescription = null
-            )
-
-            Text(
-                style = MaterialTheme.typography.titleMedium,
-                text = "Visuals"
-            )
-        }
-
+        // Theme Selection Row
+        ThemeSelectionRow()
         Text(
             style = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Normal
             ),
-            modifier = Modifier
-                .padding(start = 16.dp),
+            modifier = Modifier.padding(start = 16.dp),
             text = "Select app theme.",
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        ThemeSelectRadio(dataStoreSingleton)
 
-        ThemeRadio()
-
-        // Password settings
-        Row (modifier = Modifier.padding(start = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Security,
-                contentDescription = null
-            )
-
-            Text(
-                text = "Security",
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-
+        // Security Row
+        SecurityRow()
         Text(
             text = "Choose how you want to secure your app.",
             style = MaterialTheme.typography.titleSmall.copy(
@@ -145,13 +100,71 @@ fun SettingsScreen(
             modifier = Modifier.padding(start = 16.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-
         PasswordSwitch()
         SetPasswordButton()
-
     }
 }
 
+
+// Text and icon row for notifications
+@Composable
+fun NotificationRow() {
+    Row(
+        modifier = Modifier.padding(start = 16.dp, top = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Notifications,
+            contentDescription = null
+        )
+
+        Text(
+            text = "Notifications",
+            style = MaterialTheme.typography.titleMedium
+        )
+    }
+}
+
+// Text and icon row for theme
+@Composable
+fun ThemeSelectionRow() {
+    Row(
+        modifier = Modifier.padding(start = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Visibility,
+            contentDescription = null
+        )
+
+        Text(
+            style = MaterialTheme.typography.titleMedium,
+            text = "Visuals"
+        )
+    }
+}
+
+// Text and icon row for security
+@Composable
+fun SecurityRow() {
+    Row(
+        modifier = Modifier.padding(start = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Security,
+            contentDescription = null
+        )
+
+        Text(
+            text = "Security",
+            style = MaterialTheme.typography.titleMedium
+        )
+    }
+}
+
+
+// Button to set password
 @Composable
 fun SetPasswordButton() {
     Button(
@@ -173,6 +186,7 @@ fun SetPasswordButton() {
     }
 }
 
+// Switch to enable password
 @Composable
 fun PasswordSwitch() {
     var passcodeChecked by remember { mutableStateOf(false) }
@@ -198,8 +212,9 @@ fun PasswordSwitch() {
     }
 }
 
+// Radio selection for theme mode
 @Composable
-fun ThemeRadio() {
+fun ThemeSelectRadio(dataStoreSingleton: PreferenceDataStore) {
     val displayRadioOptions = listOf("Use device settings", "Dark mode", "Light mode")
     val (selectedOption, onOptionSelected) = remember { mutableStateOf(displayRadioOptions[0]) }
 
@@ -211,7 +226,18 @@ fun ThemeRadio() {
                     .height(56.dp)
                     .selectable(
                         selected = (text == selectedOption),
-                        onClick = { onOptionSelected(text) },
+                        onClick = {
+                            onOptionSelected(text)
+
+                            // Change app theme
+                            CoroutineScope(Dispatchers.IO).launch {
+                                when (text) {
+                                    "Use device settings" -> {  }
+                                    "Dark mode" -> { dataStoreSingleton.setTheme(true) }
+                                    "Light mode" -> { dataStoreSingleton.setTheme(false) }
+                                }
+                            }
+                        },
                         role = Role.RadioButton
                     )
                     .padding(horizontal = 16.dp),
@@ -232,6 +258,7 @@ fun ThemeRadio() {
     }
 }
 
+// Button to open android notifications
 @Composable
 fun NotificationsButton() {
     val context = LocalContext.current
@@ -253,10 +280,10 @@ fun NotificationsButton() {
     }
 }
 
+// Launch notifications function
 private fun openNotificationSettings(context: Context) {
     val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
     intent.putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
     context.startActivity(intent)
 }
-
 

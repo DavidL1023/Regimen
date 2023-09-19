@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -24,41 +25,21 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.NotificationAdd
-import androidx.compose.material.icons.filled.SelfImprovement
-import androidx.compose.material.icons.outlined.CreateNewFolder
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.NotificationAdd
-import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumTopAppBar
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -74,7 +55,6 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -91,7 +71,7 @@ import app.regimen.screens.SettingsScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(dataStoreSingleton: PreferenceDataStore) {
     // Used for dynamic scaffold
     var dynamicScaffoldState by remember {
         mutableStateOf(DynamicScaffoldState())
@@ -142,7 +122,9 @@ fun MainScreen() {
                         BottomBarScreen.Home.route
                     ),
                     onFabClick = { dynamicScaffoldState.fabOnClick?.invoke() },
-                    fabIcon = getFabIconForDestination(currentDestination)
+                    fabIcon = getFabIconForDestination(currentDestination),
+                    fabBoxContent = { isExpanded -> dynamicScaffoldState.fabBoxContent?.invoke(this, isExpanded) }
+
                 )
             }
         }
@@ -161,7 +143,8 @@ fun MainScreen() {
                     onComposing = {
                         dynamicScaffoldState = it
                     },
-                    navController = navController
+                    navController = navController,
+                    dataStoreSingleton = dataStoreSingleton
                 )
             }
             composable(
@@ -171,7 +154,8 @@ fun MainScreen() {
                     onComposing = {
                         dynamicScaffoldState = it
                     },
-                    navController = navController
+                    navController = navController,
+                    dataStoreSingleton = dataStoreSingleton
                 )
             }
             composable(
@@ -181,7 +165,8 @@ fun MainScreen() {
                     onComposing = {
                         dynamicScaffoldState = it
                     },
-                    navController = navController
+                    navController = navController,
+                    dataStoreSingleton = dataStoreSingleton
                 )
             }
             composable(
@@ -191,7 +176,8 @@ fun MainScreen() {
                     onComposing = {
                         dynamicScaffoldState = it
                     },
-                    navController = navController
+                    navController = navController,
+                    dataStoreSingleton = dataStoreSingleton
                 )
             }
         }
@@ -204,6 +190,7 @@ fun MainScreen() {
 fun CustomFloatingActionButton(
     expandable: Boolean,
     onFabClick: () -> Unit,
+    fabBoxContent: @Composable BoxScope.(Boolean) -> Unit,
     fabIcon: ImageVector
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -229,15 +216,19 @@ fun CustomFloatingActionButton(
                 .offset(y = (25).dp)
                 .size(
                     width = expandedFabWidth,
-                    height = (animateDpAsState(if (isExpanded) 200.dp else 0.dp, animationSpec = spring(dampingRatio = 4f))).value)
+                    height = (animateDpAsState(
+                        if (isExpanded) 200.dp else 0.dp,
+                        animationSpec = spring(dampingRatio = 4f)
+                    )).value
+                )
                 .background(
                     MaterialTheme.colorScheme.surfaceContainer,
                     shape = RoundedCornerShape(18.dp)
                 )
         ) {
 
-            // Customize the content of the expanded box
-            HomeScreenFabBox(isExpanded)
+            // The content of the expanded box
+            fabBoxContent(isExpanded)
         }
 
 
@@ -264,7 +255,8 @@ fun CustomFloatingActionButton(
                         x = animateDpAsState(
                             if (isExpanded) -70.dp else 0.dp,
                             animationSpec = spring(dampingRatio = 3f)
-                        ).value)
+                        ).value
+                    )
             )
 
             Text(
@@ -275,7 +267,8 @@ fun CustomFloatingActionButton(
                         x = animateDpAsState(
                             if (isExpanded) 10.dp else 50.dp,
                             animationSpec = spring(dampingRatio = 3f)
-                        ).value)
+                        ).value
+                    )
                     .alpha(
                         animateFloatAsState(
                             targetValue = if (isExpanded) 1f else 0f,
@@ -284,7 +277,8 @@ fun CustomFloatingActionButton(
                                 delayMillis = if (isExpanded) 100 else 0,
                                 easing = EaseIn
                             )
-                        ).value)
+                        ).value
+                    )
             )
         }
     }
@@ -311,7 +305,6 @@ fun RemindMeRow(icon: ImageVector, text: String, isExpanded: Boolean, onClick: (
                     )
                 ).value
             )
-
     ) {
         Icon(
             modifier = Modifier.size(26.dp),
@@ -321,37 +314,8 @@ fun RemindMeRow(icon: ImageVector, text: String, isExpanded: Boolean, onClick: (
 
         Text(
             text = text,
+            style = MaterialTheme.typography.labelLarge,
             softWrap = false
-        )
-    }
-}
-
-// Expandable box for when fab is clicked on home screen
-@Composable
-fun HomeScreenFabBox(isExpanded: Boolean) {
-    Column {
-        RemindMeRow(
-            icon = Icons.Filled.SelfImprovement,
-            text = "Habit",
-            isExpanded = isExpanded,
-            onClick = {},
-            enterDelay = 500
-        )
-
-        RemindMeRow(
-            icon = Icons.Filled.EventRepeat,
-            text = "Recurring",
-            isExpanded = isExpanded,
-            onClick = {},
-            enterDelay = 350
-        )
-
-        RemindMeRow(
-            icon = Icons.Filled.CalendarMonth,
-            text = "Single Time",
-            isExpanded = isExpanded,
-            onClick = {},
-            enterDelay = 200
         )
     }
 }
@@ -570,7 +534,8 @@ private fun CustomNavBarItem(
 // Class to handle dynamic scaffold for each nav screen
 data class DynamicScaffoldState(
     val toolbarActions: (@Composable RowScope.() -> Unit)? = null,
-    val fabOnClick: (() -> Unit)? = null
+    val fabOnClick: (() -> Unit)? = null,
+    val fabBoxContent: (@Composable BoxScope.(Boolean) -> Unit)? = null
 )
 
 // Fab button icon
