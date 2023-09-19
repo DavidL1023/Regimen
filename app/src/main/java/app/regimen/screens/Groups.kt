@@ -67,13 +67,13 @@ import app.regimen.fadingEdge
 @Composable
 fun GroupsScreen(
     onComposing: (DynamicScaffoldState) -> Unit,
-    navController: NavController,
-    dataStoreSingleton: PreferenceDataStore
+    navController: NavController
 ) {
     // Dynamic toolbar
-    LaunchedEffect(key1 = true) {
         onComposing(
             DynamicScaffoldState(
+                toolbarTitle = "Groups",
+                toolbarSubtitle = "Organize your data.",
                 toolbarActions = {
                     IconButton(onClick = { }) {
                         Icon(
@@ -87,7 +87,6 @@ fun GroupsScreen(
                 }
             )
         )
-    }
 
     // Groups column
     Column (

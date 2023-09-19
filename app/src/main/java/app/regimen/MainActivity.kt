@@ -14,17 +14,20 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
 
+    // Preference DataStore singleton
+    lateinit var dataStoreSingleton: PreferenceDataStore
+    ///CoroutineScope(Dispatchers.IO).launch { }
+
     // App
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Preference DataStore singleton
-        val dataStoreSingleton = PreferenceDataStore(this)
+        dataStoreSingleton = PreferenceDataStore(this)
 
         // Grab theme mode
         var isDarkTheme = false
         CoroutineScope(Dispatchers.IO).launch {
-            dataStoreSingleton.getTheme().collect {
+            dataStoreSingleton.getIsDarkTheme().collect {
                 withContext(Dispatchers.Main) {
                     isDarkTheme = it
                 }
@@ -36,7 +39,7 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    MainScreen(dataStoreSingleton)
+                    MainScreen()
                 }
             }
         }

@@ -58,13 +58,13 @@ import app.regimen.fadingEdge
 @Composable
 fun HomeScreen(
     onComposing: (DynamicScaffoldState) -> Unit,
-    navController: NavController,
-    dataStoreSingleton: PreferenceDataStore
+    navController: NavController
 ) {
     // Dynamic toolbar
-    LaunchedEffect(key1 = true) {
         onComposing(
             DynamicScaffoldState(
+                toolbarTitle = "Home",
+                toolbarSubtitle = "Manage your life.",
                 toolbarActions = {
                     IconButton(onClick = { }) {
                         Icon(
@@ -76,10 +76,11 @@ fun HomeScreen(
                 fabOnClick = {
 
                 },
-                fabBoxContent = { isExpanded -> HomeScreenFabBox(isExpanded) }
+                fabBoxContent = { isExpanded -> HomeScreenFabBox(isExpanded) },
+                expandableFab = true
             )
         )
-    }
+
 
     // Home column
     Column (

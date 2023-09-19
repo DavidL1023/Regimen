@@ -48,13 +48,13 @@ import app.regimen.PreferenceDataStore
 @Composable
 fun PagesScreen(
     onComposing: (DynamicScaffoldState) -> Unit,
-    navController: NavController,
-    dataStoreSingleton: PreferenceDataStore
+    navController: NavController
 ) {
     // Dynamic toolbar
-    LaunchedEffect(key1 = true) {
         onComposing(
             DynamicScaffoldState(
+                toolbarTitle = "Pages",
+                toolbarSubtitle = "Store your thoughts.",
                 toolbarActions = {
                     IconButton(onClick = { }) {
                         Icon(
@@ -68,7 +68,7 @@ fun PagesScreen(
                 }
             )
         )
-    }
+
 
     // Pages column
     Column(

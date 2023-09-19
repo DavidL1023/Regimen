@@ -9,6 +9,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,7 +32,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.NotificationAdd
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -39,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +52,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -69,9 +71,8 @@ import app.regimen.screens.HomeScreen
 import app.regimen.screens.PagesScreen
 import app.regimen.screens.SettingsScreen
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(dataStoreSingleton: PreferenceDataStore) {
+fun MainScreen() {
     // Used for dynamic scaffold
     var dynamicScaffoldState by remember {
         mutableStateOf(DynamicScaffoldState())
@@ -82,29 +83,22 @@ fun MainScreen(dataStoreSingleton: PreferenceDataStore) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    // Define your text based on the current destination
-    val titleText = when (currentDestination?.route) {
-        BottomBarScreen.Home.route -> "Home"
-        BottomBarScreen.Pages.route -> "Pages"
-        BottomBarScreen.Groups.route -> "Groups"
-        BottomBarScreen.Settings.route -> "Settings"
-        else -> ""
-    }
+    // Background focus dim
+    var enableFocusDim by remember { mutableStateOf(false) }
 
-    val subtitleText = when (currentDestination?.route) {
-        BottomBarScreen.Home.route -> "Manage your life."
-        BottomBarScreen.Pages.route -> "Store your thoughts."
-        BottomBarScreen.Groups.route -> "Organize your data."
-        BottomBarScreen.Settings.route -> "Personalize your app."
-        else -> ""
+    // Falsify dim on navigate
+    DisposableEffect(currentDestination?.route) {
+        onDispose {
+            enableFocusDim = false
+        }
     }
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) },
         topBar = {
             CustomTopAppBar(
-                title = titleText,
-                subtitle = subtitleText,
+                title = dynamicScaffoldState.toolbarTitle,
+                subtitle = dynamicScaffoldState.toolbarSubtitle,
                 showDivider = currentDestination?.route in listOf(
                     BottomBarScreen.Home.route,
                     BottomBarScreen.Groups.route
@@ -118,12 +112,16 @@ fun MainScreen(dataStoreSingleton: PreferenceDataStore) {
         floatingActionButton = {
             if (currentDestination?.route != BottomBarScreen.Settings.route) {
                 CustomFloatingActionButton(
-                    expandable = currentDestination?.route in listOf(
-                        BottomBarScreen.Home.route
-                    ),
-                    onFabClick = { dynamicScaffoldState.fabOnClick?.invoke() },
+                    expandable = dynamicScaffoldState.expandableFab,
+                    onFabClick = {
+                        dynamicScaffoldState.fabOnClick?.invoke()
+                        if (dynamicScaffoldState.expandableFab) {
+                            enableFocusDim = !enableFocusDim
+                        }
+                    },
                     fabIcon = getFabIconForDestination(currentDestination),
-                    fabBoxContent = { isExpanded -> dynamicScaffoldState.fabBoxContent?.invoke(this, isExpanded) }
+                    fabBoxContent = { isExpanded -> dynamicScaffoldState.fabBoxContent?.invoke(this, isExpanded) },
+                    enableFocusDim = enableFocusDim
 
                 )
             }
@@ -143,8 +141,7 @@ fun MainScreen(dataStoreSingleton: PreferenceDataStore) {
                     onComposing = {
                         dynamicScaffoldState = it
                     },
-                    navController = navController,
-                    dataStoreSingleton = dataStoreSingleton
+                    navController = navController
                 )
             }
             composable(
@@ -154,8 +151,7 @@ fun MainScreen(dataStoreSingleton: PreferenceDataStore) {
                     onComposing = {
                         dynamicScaffoldState = it
                     },
-                    navController = navController,
-                    dataStoreSingleton = dataStoreSingleton
+                    navController = navController
                 )
             }
             composable(
@@ -165,8 +161,7 @@ fun MainScreen(dataStoreSingleton: PreferenceDataStore) {
                     onComposing = {
                         dynamicScaffoldState = it
                     },
-                    navController = navController,
-                    dataStoreSingleton = dataStoreSingleton
+                    navController = navController
                 )
             }
             composable(
@@ -176,12 +171,19 @@ fun MainScreen(dataStoreSingleton: PreferenceDataStore) {
                     onComposing = {
                         dynamicScaffoldState = it
                     },
-                    navController = navController,
-                    dataStoreSingleton = dataStoreSingleton
+                    navController = navController
                 )
             }
         }
 
+        // Background dim
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .background(color = Color.Black.copy( alpha = if (enableFocusDim) 0.15f else 0f) )
+            .then(if (enableFocusDim) Modifier.clickable {
+                enableFocusDim = false
+            } else Modifier)
+        )
     }
 }
 
@@ -191,10 +193,12 @@ fun CustomFloatingActionButton(
     expandable: Boolean,
     onFabClick: () -> Unit,
     fabBoxContent: @Composable BoxScope.(Boolean) -> Unit,
-    fabIcon: ImageVector
+    fabIcon: ImageVector,
+    enableFocusDim: Boolean
 ) {
     var isExpanded by remember { mutableStateOf(false) }
-    if (!expandable) { // Close the expanded fab if you change to non expandable nav destination
+    // Close the expanded fab if enableFocusDim changes to false
+    if (!enableFocusDim && isExpanded) {
         isExpanded = false
     }
 
@@ -217,7 +221,7 @@ fun CustomFloatingActionButton(
                 .size(
                     width = expandedFabWidth,
                     height = (animateDpAsState(
-                        if (isExpanded) 200.dp else 0.dp,
+                        if (isExpanded) 205.dp else 0.dp,
                         animationSpec = spring(dampingRatio = 4f)
                     )).value
                 )
@@ -282,6 +286,9 @@ fun CustomFloatingActionButton(
             )
         }
     }
+
+
+
 }
 
 // A row for the Fab box
@@ -533,9 +540,12 @@ private fun CustomNavBarItem(
 
 // Class to handle dynamic scaffold for each nav screen
 data class DynamicScaffoldState(
+    val toolbarTitle: String = "",
+    val toolbarSubtitle: String = "",
     val toolbarActions: (@Composable RowScope.() -> Unit)? = null,
     val fabOnClick: (() -> Unit)? = null,
-    val fabBoxContent: (@Composable BoxScope.(Boolean) -> Unit)? = null
+    val fabBoxContent: (@Composable BoxScope.(Boolean) -> Unit)? = null,
+    val expandableFab: Boolean = false
 )
 
 // Fab button icon

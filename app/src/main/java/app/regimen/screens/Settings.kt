@@ -26,7 +26,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import app.regimen.DynamicScaffoldState
+import app.regimen.MainActivity
 import app.regimen.PreferenceDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,20 +47,16 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     onComposing: (DynamicScaffoldState) -> Unit,
-    navController: NavController,
-    dataStoreSingleton: PreferenceDataStore
+    navController: NavController
 ) {
 
     // Dynamic toolbar
-    LaunchedEffect(key1 = true) {
         onComposing(
             DynamicScaffoldState(
-                toolbarActions = {
-                    // Add toolbar actions if needed
-                }
+                toolbarTitle = "Settings",
+                toolbarSubtitle = "Personalize your app."
             )
         )
-    }
 
     // Settings column
     Column(
@@ -88,7 +84,7 @@ fun SettingsScreen(
             text = "Select app theme.",
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        ThemeSelectRadio(dataStoreSingleton)
+        ThemeSelectRadio()
 
         // Security Row
         SecurityRow()
@@ -214,7 +210,7 @@ fun PasswordSwitch() {
 
 // Radio selection for theme mode
 @Composable
-fun ThemeSelectRadio(dataStoreSingleton: PreferenceDataStore) {
+fun ThemeSelectRadio() {
     val displayRadioOptions = listOf("Use device settings", "Dark mode", "Light mode")
     val (selectedOption, onOptionSelected) = remember { mutableStateOf(displayRadioOptions[0]) }
 
@@ -230,12 +226,10 @@ fun ThemeSelectRadio(dataStoreSingleton: PreferenceDataStore) {
                             onOptionSelected(text)
 
                             // Change app theme
-                            CoroutineScope(Dispatchers.IO).launch {
-                                when (text) {
-                                    "Use device settings" -> {  }
-                                    "Dark mode" -> { dataStoreSingleton.setTheme(true) }
-                                    "Light mode" -> { dataStoreSingleton.setTheme(false) }
-                                }
+                            when (text) {
+                                "Use device settings" -> {  }
+                                "Dark mode" -> { }
+                                "Light mode" -> { }
                             }
                         },
                         role = Role.RadioButton

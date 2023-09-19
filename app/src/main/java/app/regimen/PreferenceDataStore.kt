@@ -4,35 +4,66 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.map
 
 class PreferenceDataStore(context: Context) {
 
-    val Context.dataStore by preferencesDataStore(name = "SETTINGS")
-    var pref = context.dataStore
+    private val Context.dataStore by preferencesDataStore(name = "SETTINGS")
+    private var pref = context.dataStore
 
     companion object {
-        var isDarkThemePref = booleanPreferencesKey("IS_DARK_THEME")
-        var hasPasscodePref = booleanPreferencesKey("HAS_PASSCODE")
-        var passcodeValuePref = intPreferencesKey("PASSCODE_VALUE")
+        var themeRadioPref = stringPreferencesKey("THEME_RADIO")
+        var isDarkTheme = booleanPreferencesKey("IS_DARK_THEME")
+
+        var passcodeSwitchPref = booleanPreferencesKey("PASSCODE_SWITCH")
+        var passcodeDigits = intPreferencesKey("PASSCODE_DIGITS")
     }
 
 
-    //Theme preference getter setter
-    suspend fun setTheme(isDarkTheme : Boolean) {
+    //Theme radio
+    suspend fun setThemeRadio(themeRadio : String) {
         pref.edit {
-            it[isDarkThemePref] = isDarkTheme
+            it[themeRadioPref] = themeRadio
         }
     }
 
-    fun getTheme() = pref.data.map {
-        it[isDarkThemePref]?:false
+    fun getThemeRadio() = pref.data.map {
+        it[themeRadioPref]?:false
     }
 
-    //Passcode switch getter setter
+    //Dark theme
+    suspend fun setIsDarkTheme(darkTheme : Boolean) {
+        pref.edit {
+            it[isDarkTheme] = darkTheme
+        }
+    }
 
+    fun getIsDarkTheme() = pref.data.map {
+        it[isDarkTheme]?:false
+    }
 
-    //Passcode value getter setter
+    //Passcode switch
+    suspend fun setPasscodeSwitch(passcodeSwitch : Boolean) {
+        pref.edit {
+            it[passcodeSwitchPref] = passcodeSwitch
+        }
+    }
+
+    fun getPasscodeSwitch() = pref.data.map {
+        it[passcodeSwitchPref]?:false
+    }
+
+    //Passcode digits
+    suspend fun setPasscodeDigits(passcode : Int) {
+        pref.edit {
+            it[passcodeDigits] = passcode
+        }
+    }
+
+    fun getPasscodeDigits() = pref.data.map {
+        it[passcodeDigits]?:false
+    }
 
 }
