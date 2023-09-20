@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import app.regimen.di.AppModule.providePreferenceDataStore
 import app.regimen.ui.theme.RegimenTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
@@ -26,6 +27,8 @@ class MainActivity : ComponentActivity() {
     // App
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        dataStoreSingleton = providePreferenceDataStore(this)
 
         // Grab theme mode
         var isDarkTheme = false
