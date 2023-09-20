@@ -57,8 +57,7 @@ import app.regimen.fadingEdge
 
 @Composable
 fun HomeScreen(
-    onComposing: (DynamicScaffoldState) -> Unit,
-    navController: NavController
+    onComposing: (DynamicScaffoldState) -> Unit
 ) {
     // Dynamic toolbar
         onComposing(

@@ -47,8 +47,7 @@ import app.regimen.PreferenceDataStore
 
 @Composable
 fun PagesScreen(
-    onComposing: (DynamicScaffoldState) -> Unit,
-    navController: NavController
+    onComposing: (DynamicScaffoldState) -> Unit
 ) {
     // Dynamic toolbar
         onComposing(

@@ -6,20 +6,25 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class PreferenceDataStore(context: Context) {
-
-    private val Context.dataStore by preferencesDataStore(name = "SETTINGS")
-    private var pref = context.dataStore
+@Singleton
+class PreferenceDataStore @Inject constructor(@ApplicationContext private val context: Context) {
 
     companion object {
+        private val Context.dataStore by preferencesDataStore(name = "SETTINGS")
+
         var themeRadioPref = stringPreferencesKey("THEME_RADIO")
         var isDarkTheme = booleanPreferencesKey("IS_DARK_THEME")
 
         var passcodeSwitchPref = booleanPreferencesKey("PASSCODE_SWITCH")
         var passcodeDigits = intPreferencesKey("PASSCODE_DIGITS")
     }
+
+    private var pref = context.dataStore
 
 
     //Theme radio

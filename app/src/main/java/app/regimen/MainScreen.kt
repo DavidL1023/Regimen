@@ -140,8 +140,7 @@ fun MainScreen() {
                 HomeScreen(
                     onComposing = {
                         dynamicScaffoldState = it
-                    },
-                    navController = navController
+                    }
                 )
             }
             composable(
@@ -150,8 +149,7 @@ fun MainScreen() {
                 PagesScreen(
                     onComposing = {
                         dynamicScaffoldState = it
-                    },
-                    navController = navController
+                    }
                 )
             }
             composable(
@@ -160,8 +158,7 @@ fun MainScreen() {
                 GroupsScreen(
                     onComposing = {
                         dynamicScaffoldState = it
-                    },
-                    navController = navController
+                    }
                 )
             }
             composable(
@@ -170,8 +167,7 @@ fun MainScreen() {
                 SettingsScreen(
                     onComposing = {
                         dynamicScaffoldState = it
-                    },
-                    navController = navController
+                    }
                 )
             }
         }
