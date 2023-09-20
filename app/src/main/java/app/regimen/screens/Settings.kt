@@ -3,6 +3,7 @@ package app.regimen.screens
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +27,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,11 +40,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import app.regimen.DynamicScaffoldState
+import app.regimen.PreferenceDataStore
+import app.regimen.di.AppModule
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+
+// Preference data store
+lateinit var dataStoreSingleton: PreferenceDataStore
 
 @Composable
 fun SettingsScreen(
-    onComposing: (DynamicScaffoldState) -> Unit
+    onComposing: (DynamicScaffoldState) -> Unit,
+    dataStore: PreferenceDataStore
 ) {
+
+    // Inject the singleton data store
+    dataStoreSingleton = dataStore
 
     // Dynamic toolbar
         onComposing(
@@ -181,6 +197,14 @@ fun SetPasswordButton() {
 fun PasswordSwitch() {
     var passcodeChecked by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            dataStoreSingleton.getPasscodeSwitch().collect {
+                passcodeChecked = it
+            }
+        }
+    }
+
     Row(
         Modifier
             .fillMaxWidth(),
@@ -196,17 +220,24 @@ fun PasswordSwitch() {
 
         Switch(
             checked = passcodeChecked,
-            onCheckedChange = { passcodeChecked = it },
+            onCheckedChange = { isChecked ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    dataStoreSingleton.setPasscodeSwitch(isChecked)
+                }
+            },
             modifier = Modifier.padding(end = 16.dp)
         )
     }
 }
+
 
 // Radio selection for theme mode
 @Composable
 fun ThemeSelectRadio() {
     val displayRadioOptions = listOf("Use device settings", "Dark mode", "Light mode")
     val (selectedOption, onOptionSelected) = remember { mutableStateOf(displayRadioOptions[0]) }
+
+    val isSystemDarkTheme = isSystemInDarkTheme()
 
     Column(Modifier.selectableGroup()) {
         displayRadioOptions.forEach { text ->
@@ -221,9 +252,22 @@ fun ThemeSelectRadio() {
 
                             // Change app theme
                             when (text) {
-                                "Use device settings" -> {  }
-                                "Dark mode" -> { }
-                                "Light mode" -> { }
+                                "Use device settings" -> {
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        dataStoreSingleton.setIsDarkTheme(isSystemDarkTheme)
+                                    }
+                                }
+                                "Dark mode" -> {
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        dataStoreSingleton.setIsDarkTheme(true)
+                                    }
+                                }
+
+                                "Light mode" -> {
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        dataStoreSingleton.setIsDarkTheme(false)
+                                    }
+                                }
                             }
                         },
                         role = Role.RadioButton

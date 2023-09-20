@@ -70,9 +70,12 @@ import app.regimen.screens.GroupsScreen
 import app.regimen.screens.HomeScreen
 import app.regimen.screens.PagesScreen
 import app.regimen.screens.SettingsScreen
+import javax.inject.Inject
 
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    dataStore: PreferenceDataStore
+) {
     // Used for dynamic scaffold
     var dynamicScaffoldState by remember {
         mutableStateOf(DynamicScaffoldState())
@@ -84,12 +87,12 @@ fun MainScreen() {
     val currentDestination = navBackStackEntry?.destination
 
     // Background focus dim
-    var enableFocusDim by remember { mutableStateOf(false) }
+    var toggledFocusDim by remember { mutableStateOf(false) }
 
     // Falsify dim on navigate
     DisposableEffect(currentDestination?.route) {
         onDispose {
-            enableFocusDim = false
+            toggledFocusDim = false
         }
     }
 
@@ -110,21 +113,24 @@ fun MainScreen() {
             )
         },
         floatingActionButton = {
-            if (currentDestination?.route != BottomBarScreen.Settings.route) {
-                CustomFloatingActionButton(
-                    expandable = dynamicScaffoldState.expandableFab,
-                    onFabClick = {
-                        dynamicScaffoldState.fabOnClick?.invoke()
-                        if (dynamicScaffoldState.expandableFab) {
-                            enableFocusDim = !enableFocusDim
-                        }
-                    },
-                    fabIcon = getFabIconForDestination(currentDestination),
-                    fabBoxContent = { isExpanded -> dynamicScaffoldState.fabBoxContent?.invoke(this, isExpanded) },
-                    enableFocusDim = enableFocusDim
-
-                )
+            var disabled = false
+            if (currentDestination?.route == BottomBarScreen.Settings.route) {
+                disabled = true
             }
+            CustomFloatingActionButton(
+                expandable = dynamicScaffoldState.expandableFab,
+                onFabClick = {
+                    dynamicScaffoldState.fabOnClick?.invoke()
+                    if (dynamicScaffoldState.expandableFab) {
+                        toggledFocusDim = !toggledFocusDim
+                    }
+                },
+                fabIcon = getFabIconForDestination(currentDestination),
+                fabBoxContent = { isExpanded -> dynamicScaffoldState.fabBoxContent?.invoke(this, isExpanded) },
+                toggledFocusDim = toggledFocusDim
+
+            )
+
         }
     ) {
 
@@ -167,7 +173,8 @@ fun MainScreen() {
                 SettingsScreen(
                     onComposing = {
                         dynamicScaffoldState = it
-                    }
+                    },
+                    dataStore = dataStore
                 )
             }
         }
@@ -175,9 +182,9 @@ fun MainScreen() {
         // Background dim
         Box(modifier = Modifier
             .fillMaxSize()
-            .background(color = Color.Black.copy( alpha = if (enableFocusDim) 0.15f else 0f) )
-            .then(if (enableFocusDim) Modifier.clickable {
-                enableFocusDim = false
+            .background(color = Color.Black.copy( alpha = if (toggledFocusDim) 0.18f else 0f) )
+            .then(if (toggledFocusDim) Modifier.clickable {
+                toggledFocusDim = false
             } else Modifier)
         )
     }
@@ -190,11 +197,12 @@ fun CustomFloatingActionButton(
     onFabClick: () -> Unit,
     fabBoxContent: @Composable BoxScope.(Boolean) -> Unit,
     fabIcon: ImageVector,
-    enableFocusDim: Boolean
+    toggledFocusDim: Boolean
 ) {
+
     var isExpanded by remember { mutableStateOf(false) }
     // Close the expanded fab if enableFocusDim changes to false
-    if (!enableFocusDim && isExpanded) {
+    if (!toggledFocusDim && isExpanded) {
         isExpanded = false
     }
 
@@ -282,8 +290,6 @@ fun CustomFloatingActionButton(
             )
         }
     }
-
-
 
 }
 

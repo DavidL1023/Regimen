@@ -22,7 +22,6 @@ class MainActivity : ComponentActivity() {
     // Preference DataStore singleton
     @Inject
     lateinit var dataStoreSingleton: PreferenceDataStore
-    ///CoroutineScope(Dispatchers.IO).launch { }
 
     // App
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,7 +41,7 @@ class MainActivity : ComponentActivity() {
                             Surface(
                                 modifier = Modifier.fillMaxSize(),
                             ) {
-                                MainScreen()
+                                MainScreen(dataStoreSingleton)
                             }
                         }
                     }
