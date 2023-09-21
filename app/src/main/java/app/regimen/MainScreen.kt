@@ -113,9 +113,8 @@ fun MainScreen(
             )
         },
         floatingActionButton = {
-            var disabled = false
-            if (currentDestination?.route == BottomBarScreen.Settings.route) {
-                disabled = true
+            if (currentDestination?.route != BottomBarScreen.Settings.route) {
+
             }
             CustomFloatingActionButton(
                 expandable = dynamicScaffoldState.expandableFab,
