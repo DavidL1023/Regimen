@@ -35,7 +35,7 @@ class PreferenceDataStore @Inject constructor(@ApplicationContext private val co
     }
 
     fun getThemeRadio() = pref.data.map {
-        it[themeRadioPref]?:false
+        it[themeRadioPref]?:"Use device settings"
     }
 
     //Dark theme
@@ -68,7 +68,7 @@ class PreferenceDataStore @Inject constructor(@ApplicationContext private val co
     }
 
     fun getPasscodeDigits() = pref.data.map {
-        it[passcodeDigits]?:false
+        it[passcodeDigits]?:-1
     }
 
 }

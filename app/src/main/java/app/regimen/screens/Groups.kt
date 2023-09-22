@@ -313,7 +313,7 @@ fun ExpandableGroupList(isVisible: Boolean) {
     var selectedItem by remember { mutableIntStateOf(0) }
 
     val targetHeight = if (isVisible) 138.dp else 0.dp
-    val animatedHeight by animateDpAsState(targetValue = targetHeight, animationSpec = tween(easing = EaseOut))
+    val animatedHeight by animateDpAsState(targetValue = targetHeight, animationSpec = spring(dampingRatio = 3f))
 
     val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.03f to Color.Red, 0.97f to Color.Red, 1f to Color.Transparent)
 

@@ -29,6 +29,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,26 +50,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-
-// Preference data store
-lateinit var dataStoreSingleton: PreferenceDataStore
-
 @Composable
 fun SettingsScreen(
-    onComposing: (DynamicScaffoldState) -> Unit,
-    dataStore: PreferenceDataStore
+    onComposing: (DynamicScaffoldState) -> Unit
 ) {
-
-    // Inject the singleton data store
-    dataStoreSingleton = dataStore
-
     // Dynamic toolbar
-        onComposing(
-            DynamicScaffoldState(
-                toolbarTitle = "Settings",
-                toolbarSubtitle = "Personalize your app."
-            )
+    onComposing(
+        DynamicScaffoldState(
+            toolbarTitle = "Settings",
+            toolbarSubtitle = "Personalize your app."
         )
+    )
 
     // Settings column
     Column(
@@ -199,6 +191,7 @@ fun SetPasswordButton() {
 @Composable
 fun PasswordSwitch() {
     var passcodeChecked by remember { mutableStateOf(false) }
+    val dataStoreSingleton = AppModule.providePreferenceDataStore(LocalContext.current)
 
     LaunchedEffect(Unit) {
         CoroutineScope(Dispatchers.IO).launch {
@@ -239,6 +232,15 @@ fun PasswordSwitch() {
 fun ThemeSelectRadio() {
     val displayRadioOptions = listOf("Use device settings", "Dark mode", "Light mode")
     val (selectedOption, onOptionSelected) = remember { mutableStateOf(displayRadioOptions[0]) }
+    val dataStoreSingleton = AppModule.providePreferenceDataStore(LocalContext.current)
+
+    LaunchedEffect(Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            dataStoreSingleton.getThemeRadio().collect {
+                onOptionSelected(it)
+            }
+        }
+    }
 
     val isSystemDarkTheme = isSystemInDarkTheme()
 
@@ -251,7 +253,9 @@ fun ThemeSelectRadio() {
                     .selectable(
                         selected = (text == selectedOption),
                         onClick = {
-                            onOptionSelected(text)
+                            CoroutineScope(Dispatchers.IO).launch {
+                                dataStoreSingleton.setThemeRadio(text)
+                            }
 
                             // Change app theme
                             when (text) {

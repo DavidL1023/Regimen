@@ -73,9 +73,7 @@ import app.regimen.screens.SettingsScreen
 import javax.inject.Inject
 
 @Composable
-fun MainScreen(
-    dataStore: PreferenceDataStore
-) {
+fun MainScreen() {
     // Used for dynamic scaffold
     var dynamicScaffoldState by remember {
         mutableStateOf(DynamicScaffoldState())
@@ -114,22 +112,25 @@ fun MainScreen(
         },
         floatingActionButton = {
             if (currentDestination?.route != BottomBarScreen.Settings.route) {
+                CustomFloatingActionButton(
+                    expandable = dynamicScaffoldState.expandableFab,
+                    onFabClick = {
+                        dynamicScaffoldState.fabOnClick?.invoke()
+                        if (dynamicScaffoldState.expandableFab) {
+                            toggledFocusDim = !toggledFocusDim
+                        }
+                    },
+                    fabIcon = getFabIconForDestination(currentDestination),
+                    fabBoxContent = { isExpanded ->
+                        dynamicScaffoldState.fabBoxContent?.invoke(
+                            this,
+                            isExpanded
+                        )
+                    },
+                    toggledFocusDim = toggledFocusDim
 
+                )
             }
-            CustomFloatingActionButton(
-                expandable = dynamicScaffoldState.expandableFab,
-                onFabClick = {
-                    dynamicScaffoldState.fabOnClick?.invoke()
-                    if (dynamicScaffoldState.expandableFab) {
-                        toggledFocusDim = !toggledFocusDim
-                    }
-                },
-                fabIcon = getFabIconForDestination(currentDestination),
-                fabBoxContent = { isExpanded -> dynamicScaffoldState.fabBoxContent?.invoke(this, isExpanded) },
-                toggledFocusDim = toggledFocusDim
-
-            )
-
         }
     ) {
 
@@ -172,8 +173,7 @@ fun MainScreen(
                 SettingsScreen(
                     onComposing = {
                         dynamicScaffoldState = it
-                    },
-                    dataStore = dataStore
+                    }
                 )
             }
         }
@@ -181,7 +181,7 @@ fun MainScreen(
         // Background dim
         Box(modifier = Modifier
             .fillMaxSize()
-            .background(color = Color.Black.copy( alpha = if (toggledFocusDim) 0.18f else 0f) )
+            .background(color = Color.Black.copy( alpha = animateFloatAsState(if (toggledFocusDim) 0.18f else 0f).value) )
             .then(if (toggledFocusDim) Modifier.clickable {
                 toggledFocusDim = false
             } else Modifier)

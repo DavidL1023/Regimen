@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
         dataStoreSingleton = providePreferenceDataStore(this)
 
         // Grab theme mode
-        var isDarkTheme = false
+        var isDarkTheme: Boolean
         CoroutineScope(Dispatchers.IO).launch {
             dataStoreSingleton.getIsDarkTheme().collect {
                 withContext(Dispatchers.Main) {
@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
                             Surface(
                                 modifier = Modifier.fillMaxSize(),
                             ) {
-                                MainScreen(dataStoreSingleton)
+                                MainScreen()
                             }
                         }
                     }

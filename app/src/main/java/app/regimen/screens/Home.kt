@@ -60,25 +60,25 @@ fun HomeScreen(
     onComposing: (DynamicScaffoldState) -> Unit
 ) {
     // Dynamic toolbar
-        onComposing(
-            DynamicScaffoldState(
-                toolbarTitle = "Home",
-                toolbarSubtitle = "Manage your life.",
-                toolbarActions = {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = null
-                        )
-                    }
-                },
-                fabOnClick = {
+    onComposing(
+        DynamicScaffoldState(
+            toolbarTitle = "Home",
+            toolbarSubtitle = "Manage your life.",
+            toolbarActions = {
+                IconButton(onClick = { }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = null
+                    )
+                }
+            },
+            fabOnClick = {
 
-                },
-                fabBoxContent = { isExpanded -> HomeScreenFabBox(isExpanded) },
-                expandableFab = true
-            )
+            },
+            fabBoxContent = { isExpanded -> HomeScreenFabBox(isExpanded) },
+            expandableFab = true
         )
+    )
 
 
     // Home column
