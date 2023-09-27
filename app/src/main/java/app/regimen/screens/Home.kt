@@ -1,5 +1,6 @@
 package app.regimen.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,7 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,7 +39,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -49,9 +52,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import app.regimen.DynamicScaffoldState
-import app.regimen.PreferenceDataStore
 import app.regimen.RemindMeRow
 import app.regimen.fadingEdge
 
@@ -59,6 +60,14 @@ import app.regimen.fadingEdge
 fun HomeScreen(
     onComposing: (DynamicScaffoldState) -> Unit
 ) {
+    // Used to hide on scroll
+    val lazyListState = rememberLazyListState()
+    val hiddenOnScroll by remember(lazyListState) {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex == 0
+        }
+    }
+
     // Dynamic toolbar
     onComposing(
         DynamicScaffoldState(
@@ -76,7 +85,8 @@ fun HomeScreen(
 
             },
             fabBoxContent = { isExpanded -> HomeScreenFabBox(isExpanded) },
-            expandableFab = true
+            expandableFab = true,
+            lazyListStateVisible = hiddenOnScroll
         )
     )
 
@@ -87,13 +97,13 @@ fun HomeScreen(
     ) {
 
         // Horizontal scroll for calendar filter
-        CalendarFilterChips()
+        CalendarFilterChips(hiddenOnScroll)
 
         // Filter by reminder type
         CategoryFilterSegmented()
 
         // Reminder cards scrollable column
-        LazyReminderColumn()
+        LazyReminderColumn(lazyListState)
     }
 
 }
@@ -130,8 +140,9 @@ fun HomeScreenFabBox(isExpanded: Boolean) {
 
 // Column for the reminder cards
 @Composable
-fun LazyReminderColumn() {
+fun LazyReminderColumn(lazyListState: LazyListState) {
     LazyColumn(
+        state = lazyListState,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
@@ -220,34 +231,38 @@ fun ReminderCard(displayGroup: Boolean) {
 
 // Row of calendar filter chips
 @Composable
-private fun CalendarFilterChips() {
+private fun CalendarFilterChips(hiddenOnScroll: Boolean) {
     val selectedChipIndex = remember { mutableIntStateOf(-1) }
     val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.03f to Color.Red, 0.97f to Color.Red, 1f to Color.Transparent)
 
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier
-            .fadingEdge(leftRightFade)
-            .height(80.dp)
+    AnimatedVisibility(
+        visible = hiddenOnScroll
     ) {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier
+                .fadingEdge(leftRightFade)
+                .height(80.dp)
+        ) {
 
-        item {
-            Spacer(modifier = Modifier.width(10.dp))
-        }
+            item {
+                Spacer(modifier = Modifier.width(10.dp))
+            }
 
-        items(14) { index ->
-            val isSelected = index == selectedChipIndex.intValue
-            val selectedIndex = if (isSelected) -1 else index
-            VerticalChip(
-                isSelected = isSelected,
-                onClick = { selectedChipIndex.intValue = selectedIndex },
-                topText = "Thu",
-                bottomText = "${index + 1}"
-            )
-        }
+            items(14) { index ->
+                val isSelected = index == selectedChipIndex.intValue
+                val selectedIndex = if (isSelected) -1 else index
+                VerticalChip(
+                    isSelected = isSelected,
+                    onClick = { selectedChipIndex.intValue = selectedIndex },
+                    topText = "Thu",
+                    bottomText = "${index + 1}"
+                )
+            }
 
-        item {
-            Spacer(modifier = Modifier.width(10.dp))
+            item {
+                Spacer(modifier = Modifier.width(10.dp))
+            }
         }
     }
 }

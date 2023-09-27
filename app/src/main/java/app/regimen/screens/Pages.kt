@@ -1,5 +1,6 @@
 package app.regimen.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
@@ -11,8 +12,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -31,7 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,32 +45,39 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import app.regimen.DynamicScaffoldState
-import app.regimen.PreferenceDataStore
 
 @Composable
 fun PagesScreen(
     onComposing: (DynamicScaffoldState) -> Unit
 ) {
-    // Dynamic toolbar
-        onComposing(
-            DynamicScaffoldState(
-                toolbarTitle = "Pages",
-                toolbarSubtitle = "Store your thoughts.",
-                toolbarActions = {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = null
-                        )
-                    }
-                },
-                fabOnClick = {
+    // Used to hide on scroll
+    val lazyStaggeredGridState = rememberLazyStaggeredGridState()
+    val hiddenOnScroll by remember(lazyStaggeredGridState) {
+        derivedStateOf {
+            lazyStaggeredGridState.firstVisibleItemIndex == 0
+        }
+    }
 
+    // Dynamic toolbar
+    onComposing(
+        DynamicScaffoldState(
+            toolbarTitle = "Pages",
+            toolbarSubtitle = "Store your thoughts.",
+            toolbarActions = {
+                IconButton(onClick = { }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = null
+                    )
                 }
-            )
+            },
+            fabOnClick = {
+
+            },
+            lazyStaggeredGridStateVisible = hiddenOnScroll
         )
+    )
 
 
     // Pages column
@@ -75,13 +86,13 @@ fun PagesScreen(
     ) {
 
         // Search bar for pages
-        PageSearchBar()
+        PageSearchBar(hiddenOnScroll)
 
         // Sort button
         SortExpandable()
 
         // Page Cards using a responsive grid
-        LazyPageGrid()
+        LazyPageGrid(lazyStaggeredGridState)
 
     }
 }
@@ -89,8 +100,9 @@ fun PagesScreen(
 
 // Grid of pages
 @Composable
-fun LazyPageGrid() {
+fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
     LazyVerticalStaggeredGrid(
+        state = lazyStaggeredGridState,
         columns = StaggeredGridCells.Fixed(2),
         modifier = Modifier
             .fillMaxWidth()
@@ -98,15 +110,12 @@ fun LazyPageGrid() {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalItemSpacing = 8.dp,
         content = {
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-            }
 
-            items(10) { index ->
+            items(18) { index ->
                 PageCard(true)
             }
 
-            item {
+            item(span = StaggeredGridItemSpan.FullLine) {
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
@@ -125,7 +134,7 @@ fun SortExpandable() {
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
         modifier = Modifier
-            .padding(start = 16.dp)
+            .padding(start = 16.dp, bottom = 8.dp)
     ) {
         OutlinedTextField(
             modifier = Modifier.menuAnchor(),
@@ -211,53 +220,57 @@ fun PageCard(displayGroup: Boolean) {
 // Page search bar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PageSearchBar() {
+fun PageSearchBar(hiddenOnScroll: Boolean) {
     var text by remember { mutableStateOf("")}
     var active by remember { mutableStateOf(false)}
 
-    DockedSearchBar(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp),
-        query = text,
-        onQueryChange = {
-            text = it
-        },
-        onSearch = {
-            active = false
-        },
-        active = active,
-        onActiveChange = {
-            active = it
-        },
-        placeholder = {
-            Text(text = "Search pages")
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(animateDpAsState(if (active) 25.dp else 20.dp).value)
-            )
-        },
-        trailingIcon = {
-            if(active) {
-                Icon(
-                    modifier = Modifier.clickable {
-                        if(text.isNotEmpty()) {
-                            text = ""
-                        } else {
-                            active = false
-                        }
-                        text = ""
-                    },
-                    imageVector = Icons.Default.Close,
-                    contentDescription = null
-                )
-            }
-        }
+    AnimatedVisibility(
+        visible = hiddenOnScroll
     ) {
+        DockedSearchBar(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp),
+            query = text,
+            onQueryChange = {
+                text = it
+            },
+            onSearch = {
+                active = false
+            },
+            active = active,
+            onActiveChange = {
+                active = it
+            },
+            placeholder = {
+                Text(text = "Search pages")
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(animateDpAsState(if (active) 25.dp else 20.dp).value)
+                )
+            },
+            trailingIcon = {
+                if (active) {
+                    Icon(
+                        modifier = Modifier.clickable {
+                            if (text.isNotEmpty()) {
+                                text = ""
+                            } else {
+                                active = false
+                            }
+                            text = ""
+                        },
+                        imageVector = Icons.Default.Close,
+                        contentDescription = null
+                    )
+                }
+            }
+        ) {
 
+        }
     }
 }

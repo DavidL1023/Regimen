@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -40,10 +42,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -70,7 +75,6 @@ import app.regimen.screens.GroupsScreen
 import app.regimen.screens.HomeScreen
 import app.regimen.screens.PagesScreen
 import app.regimen.screens.SettingsScreen
-import javax.inject.Inject
 
 @Composable
 fun MainScreen() {
@@ -112,24 +116,27 @@ fun MainScreen() {
         },
         floatingActionButton = {
             if (currentDestination?.route != BottomBarScreen.Settings.route) {
-                CustomFloatingActionButton(
-                    expandable = dynamicScaffoldState.expandableFab,
-                    onFabClick = {
-                        dynamicScaffoldState.fabOnClick?.invoke()
-                        if (dynamicScaffoldState.expandableFab) {
-                            toggledFocusDim = !toggledFocusDim
-                        }
-                    },
-                    fabIcon = getFabIconForDestination(currentDestination),
-                    fabBoxContent = { isExpanded ->
-                        dynamicScaffoldState.fabBoxContent?.invoke(
-                            this,
-                            isExpanded
-                        )
-                    },
-                    toggledFocusDim = toggledFocusDim
-
-                )
+                AnimatedVisibility(
+                    visible = dynamicScaffoldState.lazyListStateVisible == true || dynamicScaffoldState.lazyStaggeredGridStateVisible == true
+                ) {
+                    CustomFloatingActionButton(
+                        expandable = dynamicScaffoldState.expandableFab,
+                        onFabClick = {
+                            dynamicScaffoldState.fabOnClick?.invoke()
+                            if (dynamicScaffoldState.expandableFab) {
+                                toggledFocusDim = !toggledFocusDim
+                            }
+                        },
+                        fabIcon = getFabIconForDestination(currentDestination),
+                        fabBoxContent = { isExpanded ->
+                            dynamicScaffoldState.fabBoxContent?.invoke(
+                                this,
+                                isExpanded
+                            )
+                        },
+                        toggledFocusDim = toggledFocusDim
+                    )
+                }
             }
         }
     ) {
@@ -181,7 +188,7 @@ fun MainScreen() {
         // Background dim
         Box(modifier = Modifier
             .fillMaxSize()
-            .background(color = Color.Black.copy( alpha = animateFloatAsState(if (toggledFocusDim) 0.18f else 0f).value) )
+            .background(color = Color.Black.copy(alpha = animateFloatAsState(if (toggledFocusDim) 0.18f else 0f).value))
             .then(if (toggledFocusDim) Modifier.clickable {
                 toggledFocusDim = false
             } else Modifier)
@@ -238,7 +245,6 @@ fun CustomFloatingActionButton(
             fabBoxContent(isExpanded)
         }
 
-
         FloatingActionButton(
             onClick = {
                 onFabClick()
@@ -288,8 +294,8 @@ fun CustomFloatingActionButton(
                     )
             )
         }
-    }
 
+    }
 }
 
 // A row for the Fab box
@@ -404,7 +410,7 @@ fun CustomNavBar(
         Modifier
             .shadow(5.dp)
             .background(color = MaterialTheme.colorScheme.surface)
-            .height(65.dp)
+            .height(64.dp)
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
@@ -546,7 +552,9 @@ data class DynamicScaffoldState(
     val toolbarActions: (@Composable RowScope.() -> Unit)? = null,
     val fabOnClick: (() -> Unit)? = null,
     val fabBoxContent: (@Composable BoxScope.(Boolean) -> Unit)? = null,
-    val expandableFab: Boolean = false
+    val expandableFab: Boolean = false,
+    val lazyListStateVisible: Boolean? = null,
+    val lazyStaggeredGridStateVisible: Boolean? = null
 )
 
 // Fab button icon

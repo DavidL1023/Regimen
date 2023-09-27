@@ -3,8 +3,7 @@ package app.regimen.screens
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Left
 import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Right
-import androidx.compose.animation.core.EaseIn
-import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -23,9 +22,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -46,7 +50,7 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -61,33 +65,57 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import app.regimen.DynamicScaffoldState
-import app.regimen.PreferenceDataStore
 import app.regimen.fadingEdge
+
+// Used for proper content hiding on scroll dependent on which tab is selected
+var onRemindersTab = true
+
+// Used for persistent selected group state
+var selectedGroup = 0
 
 @Composable
 fun GroupsScreen(
     onComposing: (DynamicScaffoldState) -> Unit
 ) {
-    // Dynamic toolbar
-        onComposing(
-            DynamicScaffoldState(
-                toolbarTitle = "Groups",
-                toolbarSubtitle = "Organize your data.",
-                toolbarActions = {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = null
-                        )
-                    }
-                },
-                fabOnClick = {
+    // Used to hide on scroll
+    val lazyListState = rememberLazyListState()
+    val lazyStaggeredGridState = rememberLazyStaggeredGridState()
 
+    val hiddenOnScrollList by remember(lazyListState) {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex == 0
+        }
+    }
+    val hiddenOnScrollStaggered by remember(lazyStaggeredGridState) {
+        derivedStateOf {
+            lazyStaggeredGridState.firstVisibleItemIndex == 0
+        }
+    }
+
+    val lazyListStateVisible = hiddenOnScrollList && onRemindersTab
+    val lazyStaggeredGridStateVisible = hiddenOnScrollStaggered && !onRemindersTab
+
+    // Dynamic toolbar
+    onComposing(
+        DynamicScaffoldState(
+            toolbarTitle = "Groups",
+            toolbarSubtitle = "Organize your data.",
+            toolbarActions = {
+                IconButton(onClick = { }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = null
+                    )
                 }
-            )
+            },
+            fabOnClick = {
+
+            },
+            lazyListStateVisible = lazyListStateVisible,
+            lazyStaggeredGridStateVisible = lazyStaggeredGridStateVisible
         )
+    )
 
     // Groups column
     Column (
@@ -95,7 +123,7 @@ fun GroupsScreen(
     ) {
 
         // Tab selector (includes group list)
-        GroupTabs()
+        GroupTabs(lazyListState, lazyStaggeredGridState)
 
     }
 }
@@ -105,8 +133,11 @@ enum class GroupTabsEnum {
     Reminders,
     Pages
 }
+
 @Composable
-fun GroupTabs() {
+fun GroupTabs(
+    lazyListState: LazyListState, lazyStaggeredGridState: LazyStaggeredGridState
+) {
     var state by remember { mutableStateOf(GroupTabsEnum.Reminders) }
     val titles = GroupTabsEnum.values().toList()
     val icons = listOf(Icons.Default.CalendarMonth, Icons.Default.Description)
@@ -140,58 +171,66 @@ fun GroupTabs() {
                 Tab(
                     modifier = Modifier.clip(RoundedCornerShape(24.dp)),
                     selected = state == title,
-                    onClick = { state = title },
+                    onClick = {
+                        state = title
+                        onRemindersTab = state.ordinal == 0
+                    },
                     text = { Text(text = title.name) },
-                    icon = { Icon(
-                        imageVector = icons[index],
-                        contentDescription = null,
-                        modifier = Modifier.size(22.dp)
-                    )},
+                    icon = {
+                        Icon(
+                            imageVector = icons[index],
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    },
                     unselectedContentColor = MaterialTheme.colorScheme.secondary
                 )
             }
         }
 
-        // Display group list
-        Column {
-            val isButtonClicked = toggleableTextButton()
-            ExpandableGroupList(isButtonClicked)
-        }
+        // Display tab content with animation between them
+        AnimatedTabContent(state, lazyListState, lazyStaggeredGridState)
+    }
+}
 
-        // Display tab content with animated slide
-        AnimatedContent(
-            targetState = state,
-            content = { selectedTab ->
-                when (selectedTab) {
-                    GroupTabsEnum.Reminders -> RemindersGroupTab()
-                    GroupTabsEnum.Pages -> PagesGroupTab()
+// Tab content with animation between them
+@Composable
+fun AnimatedTabContent(
+    state: GroupTabsEnum,
+    lazyListState: LazyListState,
+    lazyStaggeredGridState: LazyStaggeredGridState
+) {
+    AnimatedContent(
+        targetState = state,
+        content = { selectedTab ->
+            when (selectedTab) {
+                GroupTabsEnum.Reminders -> RemindersGroupTab(lazyListState)
+                GroupTabsEnum.Pages -> PagesGroupTab(lazyStaggeredGridState)
+            }
+        },
+        transitionSpec = {
+            slideIntoContainer(
+                animationSpec = tween(300),
+                towards = when (state) {
+                    GroupTabsEnum.Reminders -> Right
+                    GroupTabsEnum.Pages -> Left
                 }
-            },
-            transitionSpec = {
-                slideIntoContainer(
+            ).togetherWith(
+                slideOutOfContainer(
                     animationSpec = tween(300),
                     towards = when (state) {
                         GroupTabsEnum.Reminders -> Right
                         GroupTabsEnum.Pages -> Left
                     }
-                ).togetherWith(
-                    slideOutOfContainer(
-                        animationSpec = tween(300),
-                        towards = when (state) {
-                            GroupTabsEnum.Reminders -> Right
-                            GroupTabsEnum.Pages -> Left
-                        }
-                    )
                 )
-            }
-        )
-    }
+            )
+        }
+    )
 }
-
 
 // Return clicked boolean to enable / disable
 @Composable
-fun toggleableTextButton() : Boolean {
+fun toggleableTextButton(): Boolean {
     var isClicked by remember { mutableStateOf(false) }
 
     TextButton(
@@ -225,14 +264,24 @@ fun toggleableTextButton() : Boolean {
 
 // Tab content for reminders
 @Composable
-fun RemindersGroupTab() {
-    LazyColumn(modifier = Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp),
+fun RemindersGroupTab(lazyListState: LazyListState) {
+    LazyColumn(
+        state = lazyListState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         content = {
 
-            items(5) { index ->
+            item(1) {
+                // Display group list
+                Column {
+                    val isButtonClicked = toggleableTextButton()
+                    ExpandableGroupList(isButtonClicked)
+                }
+            }
+
+            items(8) { index ->
                 ReminderCard(false)
             }
 
@@ -245,8 +294,9 @@ fun RemindersGroupTab() {
 
 // Tab content for pages
 @Composable
-fun PagesGroupTab() {
+fun PagesGroupTab(lazyStaggeredGridState: LazyStaggeredGridState) {
     LazyVerticalStaggeredGrid(
+        state = lazyStaggeredGridState,
         columns = StaggeredGridCells.Fixed(2),
         modifier = Modifier
             .fillMaxWidth()
@@ -254,15 +304,20 @@ fun PagesGroupTab() {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalItemSpacing = 8.dp,
         content = {
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
+
+            item(span = StaggeredGridItemSpan.FullLine) {
+                // Display group list
+                Column {
+                    val isButtonClicked = toggleableTextButton()
+                    ExpandableGroupList(isButtonClicked)
+                }
             }
 
             items(15) { index ->
                 PageCard(false)
             }
 
-            item {
+            item(span = StaggeredGridItemSpan.FullLine) {
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
@@ -310,7 +365,7 @@ fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
 // Expandable group row
 @Composable
 fun ExpandableGroupList(isVisible: Boolean) {
-    var selectedItem by remember { mutableIntStateOf(0) }
+    var selectedItem by remember { mutableIntStateOf(selectedGroup) }
 
     val targetHeight = if (isVisible) 138.dp else 0.dp
     val animatedHeight by animateDpAsState(targetValue = targetHeight, animationSpec = spring(dampingRatio = 3f))
@@ -337,6 +392,7 @@ fun ExpandableGroupList(isVisible: Boolean) {
                 onSelectedChange = {
                     if (isVisible) { // Fixes bug where it can be selected even when folded
                         selectedItem = if (isSelected) -1 else index
+                        selectedGroup = selectedItem
                     }
                 }
             )
