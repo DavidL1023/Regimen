@@ -2,6 +2,11 @@ package app.regimen.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.expandIn
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -90,14 +95,17 @@ fun HomeScreen(
         )
     )
 
-
     // Home column
-    Column (
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    Column {
 
         // Horizontal scroll for calendar filter
-        CalendarFilterChips(hiddenOnScroll)
+        AnimatedVisibility(
+            visible = hiddenOnScroll,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            CalendarFilterChips()
+        }
 
         // Filter by reminder type
         CategoryFilterSegmented()
@@ -231,38 +239,34 @@ fun ReminderCard(displayGroup: Boolean) {
 
 // Row of calendar filter chips
 @Composable
-private fun CalendarFilterChips(hiddenOnScroll: Boolean) {
+private fun CalendarFilterChips() {
     val selectedChipIndex = remember { mutableIntStateOf(-1) }
     val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.03f to Color.Red, 0.97f to Color.Red, 1f to Color.Transparent)
 
-    AnimatedVisibility(
-        visible = hiddenOnScroll
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier
+            .fadingEdge(leftRightFade)
+            .padding(bottom = 12.dp)
     ) {
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier
-                .fadingEdge(leftRightFade)
-                .height(80.dp)
-        ) {
 
-            item {
-                Spacer(modifier = Modifier.width(10.dp))
-            }
+        item {
+            Spacer(modifier = Modifier.width(10.dp))
+        }
 
-            items(14) { index ->
-                val isSelected = index == selectedChipIndex.intValue
-                val selectedIndex = if (isSelected) -1 else index
-                VerticalChip(
-                    isSelected = isSelected,
-                    onClick = { selectedChipIndex.intValue = selectedIndex },
-                    topText = "Thu",
-                    bottomText = "${index + 1}"
-                )
-            }
+        items(14) { index ->
+            val isSelected = index == selectedChipIndex.intValue
+            val selectedIndex = if (isSelected) -1 else index
+            VerticalChip(
+                isSelected = isSelected,
+                onClick = { selectedChipIndex.intValue = selectedIndex },
+                topText = "Thu",
+                bottomText = "${index + 1}"
+            )
+        }
 
-            item {
-                Spacer(modifier = Modifier.width(10.dp))
-            }
+        item {
+            Spacer(modifier = Modifier.width(10.dp))
         }
     }
 }
@@ -323,7 +327,7 @@ fun CategoryFilterSegmented() {
     SingleChoiceSegmentedButtonRow (
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
     ) {
         options.forEachIndexed { index, label ->
             SegmentedButton(

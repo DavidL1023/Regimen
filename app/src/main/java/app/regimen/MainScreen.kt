@@ -7,9 +7,11 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandIn
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,8 +28,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -42,13 +42,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -62,6 +59,7 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -201,7 +199,7 @@ fun MainScreen() {
 fun CustomFloatingActionButton(
     expandable: Boolean,
     onFabClick: () -> Unit,
-    fabBoxContent: @Composable BoxScope.(Boolean) -> Unit,
+    fabBoxContent: @Composable() (BoxScope.(Boolean) -> Unit),
     fabIcon: ImageVector,
     toggledFocusDim: Boolean
 ) {
@@ -223,7 +221,6 @@ fun CustomFloatingActionButton(
     )
 
     Column {
-
         // ExpandedBox over the FAB
         Box(
             modifier = Modifier
@@ -246,17 +243,15 @@ fun CustomFloatingActionButton(
         }
 
         FloatingActionButton(
+            modifier = Modifier
+                .width(expandedFabWidth)
+                .height(expandedFabHeight),
             onClick = {
                 onFabClick()
                 if (expandable) {
                     isExpanded = !isExpanded
                 }
-            },
-            modifier = Modifier
-                .width(expandedFabWidth)
-                .height(expandedFabHeight),
-            shape = RoundedCornerShape(18.dp)
-
+            }
         ) {
 
             Icon(
@@ -294,7 +289,6 @@ fun CustomFloatingActionButton(
                     )
             )
         }
-
     }
 }
 

@@ -3,6 +3,8 @@ package app.regimen.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -81,12 +83,16 @@ fun PagesScreen(
 
 
     // Pages column
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    Column {
 
         // Search bar for pages
-        PageSearchBar(hiddenOnScroll)
+        AnimatedVisibility(
+            visible = hiddenOnScroll,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            PageSearchBar()
+        }
 
         // Sort button
         SortExpandable()
@@ -111,6 +117,10 @@ fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
         verticalItemSpacing = 8.dp,
         content = {
 
+            item(span = StaggeredGridItemSpan.FullLine) {
+                Spacer(modifier = Modifier.height(0.5.dp))
+            }
+
             items(18) { index ->
                 PageCard(true)
             }
@@ -134,7 +144,7 @@ fun SortExpandable() {
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
         modifier = Modifier
-            .padding(start = 16.dp, bottom = 8.dp)
+            .padding(start = 16.dp, bottom = 12.dp)
     ) {
         OutlinedTextField(
             modifier = Modifier.menuAnchor(),
@@ -220,57 +230,53 @@ fun PageCard(displayGroup: Boolean) {
 // Page search bar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PageSearchBar(hiddenOnScroll: Boolean) {
+fun PageSearchBar() {
     var text by remember { mutableStateOf("")}
     var active by remember { mutableStateOf(false)}
 
-    AnimatedVisibility(
-        visible = hiddenOnScroll
-    ) {
-        DockedSearchBar(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 8.dp),
-            query = text,
-            onQueryChange = {
-                text = it
-            },
-            onSearch = {
-                active = false
-            },
-            active = active,
-            onActiveChange = {
-                active = it
-            },
-            placeholder = {
-                Text(text = "Search pages")
-            },
-            leadingIcon = {
+    DockedSearchBar(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+        query = text,
+        onQueryChange = {
+            text = it
+        },
+        onSearch = {
+            active = false
+        },
+        active = active,
+        onActiveChange = {
+            active = it
+        },
+        placeholder = {
+            Text(text = "Search pages")
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(animateDpAsState(if (active) 25.dp else 20.dp).value)
+            )
+        },
+        trailingIcon = {
+            if (active) {
                 Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(animateDpAsState(if (active) 25.dp else 20.dp).value)
-                )
-            },
-            trailingIcon = {
-                if (active) {
-                    Icon(
-                        modifier = Modifier.clickable {
-                            if (text.isNotEmpty()) {
-                                text = ""
-                            } else {
-                                active = false
-                            }
+                    modifier = Modifier.clickable {
+                        if (text.isNotEmpty()) {
                             text = ""
-                        },
-                        imageVector = Icons.Default.Close,
-                        contentDescription = null
-                    )
-                }
+                        } else {
+                            active = false
+                        }
+                        text = ""
+                    },
+                    imageVector = Icons.Default.Close,
+                    contentDescription = null
+                )
             }
-        ) {
-
         }
+    ) {
+
     }
 }

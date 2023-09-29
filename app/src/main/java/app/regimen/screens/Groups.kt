@@ -118,9 +118,7 @@ fun GroupsScreen(
     )
 
     // Groups column
-    Column (
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    Column {
 
         // Tab selector (includes group list)
         GroupTabs(lazyListState, lazyStaggeredGridState)
@@ -273,7 +271,7 @@ fun RemindersGroupTab(lazyListState: LazyListState) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
         content = {
 
-            item(1) {
+            item {
                 // Display group list
                 Column {
                     val isButtonClicked = toggleableTextButton()
