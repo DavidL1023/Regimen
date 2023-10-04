@@ -2,10 +2,7 @@ package app.regimen.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.expandIn
 import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,6 +71,9 @@ fun HomeScreen(
         }
     }
 
+    // Bottom sheet toggle
+    var showBottomSheet by remember { mutableStateOf(false) }
+
     // Dynamic toolbar
     onComposing(
         DynamicScaffoldState(
@@ -86,12 +87,17 @@ fun HomeScreen(
                     )
                 }
             },
-            fabOnClick = {
-
+            fabBoxContent = { isExpanded ->
+                HomeScreenFabBox(
+                    isExpanded = isExpanded,
+                    onFabItemClick = { showBottomSheet = !showBottomSheet }
+                )
             },
-            fabBoxContent = { isExpanded -> HomeScreenFabBox(isExpanded) },
             expandableFab = true,
-            lazyListStateVisible = hiddenOnScroll
+            lazyListStateVisible = hiddenOnScroll,
+            fabBoxContextBottomSheetVisible = showBottomSheet,
+            fabBoxContextDropdownDismissed = { showBottomSheet = !showBottomSheet },
+            bottomSheetBoxContent = { }
         )
     )
 
@@ -118,13 +124,13 @@ fun HomeScreen(
 
 // Expandable box for when fab is clicked on home screen
 @Composable
-fun HomeScreenFabBox(isExpanded: Boolean) {
+fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit) {
     Column {
         RemindMeRow(
             icon = Icons.Filled.SelfImprovement,
             text = "Habit",
             isExpanded = isExpanded,
-            onClick = { },
+            onClick = { onFabItemClick() },
             enterDelay = 500
         )
 
@@ -132,7 +138,7 @@ fun HomeScreenFabBox(isExpanded: Boolean) {
             icon = Icons.Filled.EventRepeat,
             text = "Recurring",
             isExpanded = isExpanded,
-            onClick = { },
+            onClick = { onFabItemClick() },
             enterDelay = 350
         )
 
@@ -140,7 +146,7 @@ fun HomeScreenFabBox(isExpanded: Boolean) {
             icon = Icons.Filled.CalendarMonth,
             text = "Single Time",
             isExpanded = isExpanded,
-            onClick = { },
+            onClick = { onFabItemClick() },
             enterDelay = 200
         )
     }
@@ -354,5 +360,21 @@ fun CategoryFilterSegmented() {
             }
         }
     }
+
+}
+
+// Fab click content
+@Composable
+fun CreateHabit() {
+
+}
+
+@Composable
+fun CreateRecurring() {
+
+}
+
+@Composable
+fun CreateSingleTime() {
 
 }

@@ -3,7 +3,6 @@ package app.regimen.screens
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Left
 import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Right
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -109,11 +108,9 @@ fun GroupsScreen(
                     )
                 }
             },
-            fabOnClick = {
-
-            },
             lazyListStateVisible = lazyListStateVisible,
-            lazyStaggeredGridStateVisible = lazyStaggeredGridStateVisible
+            lazyStaggeredGridStateVisible = lazyStaggeredGridStateVisible,
+            bottomSheetBoxContent = { }
         )
     )
 
@@ -401,4 +398,10 @@ fun ExpandableGroupList(isVisible: Boolean) {
         }
 
     }
+}
+
+// Fab click content
+@Composable
+fun CreateGroup() {
+
 }

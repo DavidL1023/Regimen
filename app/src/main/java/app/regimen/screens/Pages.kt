@@ -74,10 +74,8 @@ fun PagesScreen(
                     )
                 }
             },
-            fabOnClick = {
-
-            },
-            lazyStaggeredGridStateVisible = hiddenOnScroll
+            lazyStaggeredGridStateVisible = hiddenOnScroll,
+            bottomSheetBoxContent = { }
         )
     )
 
@@ -279,4 +277,11 @@ fun PageSearchBar() {
     ) {
 
     }
+}
+
+// Fab click content
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreatePage() {
+
 }

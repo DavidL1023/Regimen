@@ -29,7 +29,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,14 +40,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import app.regimen.DynamicScaffoldState
-import app.regimen.PreferenceDataStore
 import app.regimen.di.AppModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @Composable
 fun SettingsScreen(
@@ -101,8 +97,8 @@ fun SettingsScreen(
             modifier = Modifier.padding(start = 16.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        PasswordSwitch()
-        SetPasswordButton()
+        val passwordButtonEnabled = passwordSwitch()
+        SetPasswordButton(passwordButtonEnabled)
     }
 }
 
@@ -167,13 +163,13 @@ fun SecurityRow() {
 
 // Button to set password
 @Composable
-fun SetPasswordButton() {
+fun SetPasswordButton(enabled: Boolean) {
     Button(
         onClick = {  },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        enabled = false
+        enabled = enabled
     ) {
         Icon(
             Icons.Filled.Password,
@@ -189,7 +185,7 @@ fun SetPasswordButton() {
 
 // Switch to enable password
 @Composable
-fun PasswordSwitch() {
+fun passwordSwitch(): Boolean {
     var passcodeChecked by remember { mutableStateOf(false) }
     val dataStoreSingleton = AppModule.providePreferenceDataStore(LocalContext.current)
 
@@ -224,6 +220,8 @@ fun PasswordSwitch() {
             modifier = Modifier.padding(end = 16.dp)
         )
     }
+
+    return passcodeChecked
 }
 
 

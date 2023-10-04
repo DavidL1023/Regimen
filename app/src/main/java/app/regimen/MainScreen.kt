@@ -7,9 +7,6 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandIn
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
@@ -36,17 +33,21 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.NotificationAdd
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,7 +62,6 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -76,6 +76,7 @@ import app.regimen.screens.HomeScreen
 import app.regimen.screens.PagesScreen
 import app.regimen.screens.SettingsScreen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
     // Used for dynamic scaffold
@@ -87,6 +88,12 @@ fun MainScreen() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+
+    // Bottom sheet toggle
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val bottomSheetBoxContent = dynamicScaffoldState.bottomSheetBoxContent
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
 
     // Background focus dim
     var toggledFocusDim by remember { mutableStateOf(false) }
@@ -115,6 +122,11 @@ fun MainScreen() {
             )
         },
         floatingActionButton = {
+            // Bottom sheet for expanded fab clicks
+            if (dynamicScaffoldState.expandableFab) {
+                showBottomSheet = dynamicScaffoldState.fabBoxContextBottomSheetVisible
+            }
+
             if (currentDestination?.route != BottomBarScreen.Settings.route) {
                 AnimatedVisibility(
                     visible = dynamicScaffoldState.lazyListStateVisible == true || dynamicScaffoldState.lazyStaggeredGridStateVisible == true,
@@ -124,24 +136,42 @@ fun MainScreen() {
                     CustomFloatingActionButton(
                         expandable = dynamicScaffoldState.expandableFab,
                         onFabClick = {
-                            dynamicScaffoldState.fabOnClick?.invoke()
                             if (dynamicScaffoldState.expandableFab) {
                                 toggledFocusDim = !toggledFocusDim
+                            } else {
+                                showBottomSheet = true
                             }
                         },
                         fabIcon = getFabIconForDestination(currentDestination),
                         fabBoxContent = { isExpanded ->
-                            dynamicScaffoldState.fabBoxContent?.invoke(
-                                this,
-                                isExpanded
-                            )
+                            dynamicScaffoldState.fabBoxContent?.invoke(this, isExpanded)
                         },
-                        toggledFocusDim = toggledFocusDim
+                        toggledFocusDim = toggledFocusDim,
+                        showBottomSheet = showBottomSheet,
+                        onFabBoxContentClick = { toggledFocusDim = false }
                     )
                 }
             }
         }
     ) {
+
+        // Bottom Sheet for FabClick
+        if (showBottomSheet) {
+            ModalBottomSheet(
+                onDismissRequest = {
+                    showBottomSheet = false
+                    if (dynamicScaffoldState.expandableFab) {
+                        dynamicScaffoldState.fabBoxContextDropdownDismissed()
+                    }
+                },
+                sheetState = sheetState
+            ) {
+                // Sheet content
+                Box {
+                    bottomSheetBoxContent()
+                }
+            }
+        }
 
         // MAIN NAV HOST
         NavHost(
@@ -205,13 +235,20 @@ fun CustomFloatingActionButton(
     onFabClick: () -> Unit,
     fabBoxContent: @Composable() (BoxScope.(Boolean) -> Unit),
     fabIcon: ImageVector,
-    toggledFocusDim: Boolean
+    toggledFocusDim: Boolean,
+    showBottomSheet: Boolean,
+    onFabBoxContentClick: () -> Unit
 ) {
 
     var isExpanded by remember { mutableStateOf(false) }
     // Close the expanded fab if enableFocusDim changes to false
     if (!toggledFocusDim && isExpanded) {
         isExpanded = false
+    }
+    // Close the expanded fab if clicked and bottom sheet appears
+    if (showBottomSheet == true) {
+        isExpanded = false
+        onFabBoxContentClick()
     }
 
     val fabSize = 68.dp
@@ -232,7 +269,7 @@ fun CustomFloatingActionButton(
                 .size(
                     width = expandedFabWidth,
                     height = (animateDpAsState(
-                        if (isExpanded) 205.dp else 0.dp,
+                        if (isExpanded) 200.dp else 0.dp,
                         animationSpec = spring(dampingRatio = 4f)
                     )).value
                 )
@@ -257,6 +294,7 @@ fun CustomFloatingActionButton(
                 }
             }
         ) {
+
 
             Icon(
                 imageVector = fabIcon,
@@ -535,7 +573,7 @@ private fun CustomNavBarItem(
                 Text(
                     text = screen.title,
                     modifier = Modifier.padding(start = 8.dp, end = 10.dp),
-                    maxLines = 1,
+                    maxLines = 1
                 )
             }
 
@@ -548,11 +586,13 @@ data class DynamicScaffoldState(
     val toolbarTitle: String = "",
     val toolbarSubtitle: String = "",
     val toolbarActions: (@Composable RowScope.() -> Unit)? = null,
-    val fabOnClick: (() -> Unit)? = null,
     val fabBoxContent: (@Composable BoxScope.(Boolean) -> Unit)? = null,
     val expandableFab: Boolean = false,
     val lazyListStateVisible: Boolean? = null,
-    val lazyStaggeredGridStateVisible: Boolean? = null
+    val lazyStaggeredGridStateVisible: Boolean? = null,
+    val fabBoxContextDropdownDismissed: () -> Unit = {},
+    val fabBoxContextBottomSheetVisible: Boolean = false,
+    val bottomSheetBoxContent: (@Composable BoxScope.() -> Unit) = {}
 )
 
 // Fab button icon
