@@ -24,6 +24,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.EventRepeat
@@ -31,15 +33,18 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -51,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -384,50 +390,367 @@ fun CategoryFilterSegmented() {
 // Fab click content
 @Composable
 fun CreateHabit() {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf("")}
+    var time by remember { mutableStateOf("")}
+    var recurringPeriod by remember { mutableIntStateOf(1) }
+
     Column (
-        modifier = Modifier.padding(horizontal = 16.dp),
+        modifier = Modifier.padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "New habit",
-            style = MaterialTheme.typography.displaySmall
+        // Explanation
+        CreateTopExplanation(header = "New habit", subtitle = "Recurring reminder that also keeps track of streak and highest streak.")
+
+        // Enter title and description
+        CreateTitleAndDescription(
+            title = title,
+            description = description,
+            setTitle = { title = it },
+            setDescription = { description = it }
         )
-        Text(
-            text = "Create a reminder that will recur after being completed, can be paused to continue at a later date, keeps a streak counter.",
-            style = MaterialTheme.typography.headlineMedium
+
+        // Date
+        Row (horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Date",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = date,
+                    onValueChange = { date = it },
+                    label = { Text("Select a date") },
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.CalendarMonth,
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
+
+            // Time
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Time",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = time,
+                    onValueChange = { time = it },
+                    label = { Text("Select a time") },
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.AccessTime,
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
+        }
+
+        // Recurring period
+        CreateRecurringNumberWheel(
+            recurringPeriod = recurringPeriod,
+            subtractRecurringPeriod = { recurringPeriod-=1 },
+            addRecurringPeriod = { recurringPeriod+=1 }
         )
+
+        // Select group
+        CreateGroupSelector()
+
+        // Save button
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { /*TODO*/ }
+        ) {
+            Text(
+                text = "Save",
+            )
+        }
+
+        Spacer(modifier = Modifier.padding(vertical = 8.dp))
     }
 
 }
 
 @Composable
 fun CreateRecurring() {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf("")}
+    var time by remember { mutableStateOf("")}
+    var recurringPeriod by remember { mutableIntStateOf(1) }
+
     Column (
-        modifier = Modifier.padding(horizontal = 16.dp),
+        modifier = Modifier.padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Explanation
+        CreateTopExplanation(header = "New recurring", subtitle = "Recurring reminder that will continue to reapply after completion, can be paused to continue at a later date.")
+
+        // Enter title and description
+        CreateTitleAndDescription(
+            title = title,
+            description = description,
+            setTitle = { title = it },
+            setDescription = { description = it }
+        )
+
+        Row (horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Date",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = date,
+                    onValueChange = { date = it },
+                    label = { Text("Select a date") },
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.CalendarMonth,
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Time",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = time,
+                    onValueChange = { time = it },
+                    label = { Text("Select a time") },
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.AccessTime,
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
+        }
+
+        // Recurring period
+        CreateRecurringNumberWheel(
+            recurringPeriod = recurringPeriod,
+            subtractRecurringPeriod = { recurringPeriod-=1 },
+            addRecurringPeriod = { recurringPeriod+=1 }
+        )
+
+        // Select group
+        CreateGroupSelector()
+
+        // Save button
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { /*TODO*/ }
+        ) {
+            Text(
+                text = "Save",
+            )
+        }
+
+        Spacer(modifier = Modifier.padding(vertical = 8.dp))
+    }
+}
+
+@Composable
+fun CreateSingleTime() {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf("")}
+    var time by remember { mutableStateOf("")}
+
+    Column (
+        modifier = Modifier.padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Explanation
+        CreateTopExplanation(header = "New reminder", subtitle = "Reminder that only happens once and will be deleted when complete.")
+
+        // Enter title and description
+        CreateTitleAndDescription(
+            title = title,
+            description = description,
+            setTitle = { title = it },
+            setDescription = { description = it }
+        )
+
+        // Date
+        Row (horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Date",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = date,
+                    onValueChange = { date = it },
+                    label = { Text("Select a date") },
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.CalendarMonth,
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
+
+            // Time
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Time",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = time,
+                    onValueChange = { time = it },
+                    label = { Text("Select a time") },
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.AccessTime,
+                            contentDescription = null
+                        )
+                    }
+                )
+            }
+        }
+
+        // Select group
+        CreateGroupSelector()
+
+        // Save button
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { /*TODO*/ }
+        ) {
+            Text(
+                text = "Save",
+            )
+        }
+
+        Spacer(modifier = Modifier.padding(vertical = 12.dp))
+    }
+}
+
+@Composable
+fun CreateGroupSelector() {
+    Column {
         Text(
-            text = "New recurring",
-            style = MaterialTheme.typography.displaySmall
+            text = "Select group",
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+    }
+}
+
+@Composable
+fun CreateTopExplanation(header: String, subtitle: String) {
+    Column {
+        Text(
+            text = header,
+            style = MaterialTheme.typography.headlineLarge
         )
         Text(
-            text = "Create a reminder that will recur after being completed, can be paused to continue at a later date.",
-            style = MaterialTheme.typography.headlineMedium
+            modifier = Modifier.alpha(0.6f),
+            text = subtitle,
+            style = MaterialTheme.typography.bodyMedium
         )
     }
 }
 
+@Composable
+fun CreateTitleAndDescription(
+    title: String,
+    description: String,
+    setTitle: (String) -> Unit,
+    setDescription: (String) -> Unit
+) {
+    // Enter title
+    Column {
+        Text(
+            text = "Title",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        TextField(
+            modifier = Modifier.fillMaxWidth(),
+            value = title,
+            onValueChange = { setTitle(it) },
+            label = { Text("Enter title") },
+            singleLine = true
+        )
+    }
+
+    // Enter description
+    Column {
+        Text(
+            text = "Description",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        TextField(
+            modifier = Modifier.fillMaxWidth(),
+            value = description,
+            onValueChange = { setDescription(it) },
+            label = { Text("Enter description") },
+            minLines = 3
+        )
+    }
+}
 
 @Composable
-fun CreateSingleTime() {
-    Column (
-        modifier = Modifier.padding(horizontal = 16.dp),
+fun CreateRecurringNumberWheel(
+    recurringPeriod: Int,
+    subtractRecurringPeriod: () -> Unit,
+    addRecurringPeriod: () -> Unit
+) {
+    Text(
+        text = "Recurring period",
+        style = MaterialTheme.typography.bodyMedium
+    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        IconButton(
+            modifier = Modifier.size(40.dp),
+            onClick = { subtractRecurringPeriod() },
+            enabled = recurringPeriod > 1
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ArrowBackIosNew,
+                contentDescription = null
+            )
+        }
+
         Text(
-            text = "New single time",
-            style = MaterialTheme.typography.displaySmall
+            text = recurringPeriod.toString() + if (recurringPeriod==1) " day" else " days",
+            style = MaterialTheme.typography.bodyLarge
         )
-        Text(
-            text = "Create a reminder that only happens once, will be deleted when complete.",
-            style = MaterialTheme.typography.headlineMedium
-        )
+
+        IconButton(
+            modifier = Modifier
+                .size(40.dp)
+                .rotate(180f),
+            onClick = { addRecurringPeriod() },
+            enabled = recurringPeriod < 365
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ArrowBackIosNew,
+                contentDescription = null
+            )
+        }
     }
 }

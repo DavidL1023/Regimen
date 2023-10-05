@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -404,11 +405,33 @@ fun ExpandableGroupList(isVisible: Boolean) {
 @Composable
 fun CreateGroup() {
     Column (
-        modifier = Modifier.padding(horizontal = 16.dp),
+        modifier = Modifier.padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "New group",
-            style = MaterialTheme.typography.displaySmall
+        var title by remember { mutableStateOf("") }
+        var description by remember { mutableStateOf("") }
+
+        // Explanation
+        CreateTopExplanation(header = "Create group", subtitle = "Groups are to organize your reminders and pages in one location.")
+
+        // Title and description
+        CreateTitleAndDescription(
+            title = title,
+            description = description,
+            setTitle = { title = it },
+            setDescription = { description = it}
         )
+
+        // Save button
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { /*TODO*/ }
+        ) {
+            Text(
+                text = "Save",
+            )
+        }
+
+        Spacer(modifier = Modifier.padding(vertical = 12.dp))
     }
 }

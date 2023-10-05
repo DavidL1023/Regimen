@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.DropdownMenuItem
@@ -284,11 +285,37 @@ fun PageSearchBar() {
 @Composable
 fun CreatePage() {
     Column (
-        modifier = Modifier.padding(horizontal = 16.dp),
+        modifier = Modifier.padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "New page",
-            style = MaterialTheme.typography.displaySmall
+        var title by remember { mutableStateOf("") }
+        var description by remember { mutableStateOf("") }
+
+        // Explanation
+        CreateTopExplanation(header = "Create page", subtitle = "Keep pages for details and to store anything.")
+
+        // Title and description
+        CreateTitleAndDescription(
+            title = title,
+            description = description,
+            setTitle = { title = it },
+            setDescription = { description = it}
         )
+
+        // Group
+        CreateGroupSelector()
+
+        // Save button
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { /*TODO*/ }
+        ) {
+            Text(
+                text = "Save",
+            )
+        }
+
+        Spacer(modifier = Modifier.padding(vertical = 12.dp))
+
     }
 }
