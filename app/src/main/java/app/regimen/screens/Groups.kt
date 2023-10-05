@@ -110,7 +110,7 @@ fun GroupsScreen(
             },
             lazyListStateVisible = lazyListStateVisible,
             lazyStaggeredGridStateVisible = lazyStaggeredGridStateVisible,
-            bottomSheetBoxContent = { }
+            bottomSheetBoxContent = { CreateGroup() }
         )
     )
 
@@ -403,5 +403,12 @@ fun ExpandableGroupList(isVisible: Boolean) {
 // Fab click content
 @Composable
 fun CreateGroup() {
-
+    Column (
+        modifier = Modifier.padding(horizontal = 16.dp),
+    ) {
+        Text(
+            text = "New group",
+            style = MaterialTheme.typography.displaySmall
+        )
+    }
 }

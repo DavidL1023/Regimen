@@ -91,7 +91,6 @@ fun MainScreen() {
 
     // Bottom sheet toggle
     var showBottomSheet by remember { mutableStateOf(false) }
-    val bottomSheetBoxContent = dynamicScaffoldState.bottomSheetBoxContent
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
 
@@ -167,8 +166,8 @@ fun MainScreen() {
                 sheetState = sheetState
             ) {
                 // Sheet content
-                Box {
-                    bottomSheetBoxContent()
+                Box (modifier = Modifier.fillMaxWidth()) {
+                    dynamicScaffoldState.bottomSheetBoxContent.invoke(this)
                 }
             }
         }

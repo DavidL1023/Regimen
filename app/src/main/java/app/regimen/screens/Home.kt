@@ -71,8 +71,9 @@ fun HomeScreen(
         }
     }
 
-    // Bottom sheet toggle
+    // Bottom sheet toggle and item clicked
     var showBottomSheet by remember { mutableStateOf(false) }
+    var fabBoxItemClicked by remember { mutableStateOf("") }
 
     // Dynamic toolbar
     onComposing(
@@ -90,14 +91,22 @@ fun HomeScreen(
             fabBoxContent = { isExpanded ->
                 HomeScreenFabBox(
                     isExpanded = isExpanded,
-                    onFabItemClick = { showBottomSheet = !showBottomSheet }
+                    onFabItemClick = { showBottomSheet = !showBottomSheet },
+                    callback = { index -> fabBoxItemClicked = index }
                 )
             },
             expandableFab = true,
             lazyListStateVisible = hiddenOnScroll,
             fabBoxContextBottomSheetVisible = showBottomSheet,
             fabBoxContextDropdownDismissed = { showBottomSheet = !showBottomSheet },
-            bottomSheetBoxContent = { }
+            bottomSheetBoxContent = {
+                println(fabBoxItemClicked)
+                when (fabBoxItemClicked) {
+                    "Habit" -> CreateHabit()
+                    "Recurring" -> CreateRecurring()
+                    "Single Time" -> CreateSingleTime()
+                }
+            }
         )
     )
 
@@ -124,13 +133,16 @@ fun HomeScreen(
 
 // Expandable box for when fab is clicked on home screen
 @Composable
-fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit) {
+fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit, callback: (String) -> Unit) {
     Column {
         RemindMeRow(
             icon = Icons.Filled.SelfImprovement,
             text = "Habit",
             isExpanded = isExpanded,
-            onClick = { onFabItemClick() },
+            onClick = {
+                onFabItemClick()
+                callback("Habit")
+            },
             enterDelay = 500
         )
 
@@ -138,7 +150,10 @@ fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit) {
             icon = Icons.Filled.EventRepeat,
             text = "Recurring",
             isExpanded = isExpanded,
-            onClick = { onFabItemClick() },
+            onClick = {
+                onFabItemClick()
+                callback("Recurring")
+            },
             enterDelay = 350
         )
 
@@ -146,7 +161,10 @@ fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit) {
             icon = Icons.Filled.CalendarMonth,
             text = "Single Time",
             isExpanded = isExpanded,
-            onClick = { onFabItemClick() },
+            onClick = {
+                onFabItemClick()
+                callback("Single Time")
+            },
             enterDelay = 200
         )
     }
@@ -366,15 +384,50 @@ fun CategoryFilterSegmented() {
 // Fab click content
 @Composable
 fun CreateHabit() {
+    Column (
+        modifier = Modifier.padding(horizontal = 16.dp),
+    ) {
+        Text(
+            text = "New habit",
+            style = MaterialTheme.typography.displaySmall
+        )
+        Text(
+            text = "Create a reminder that will recur after being completed, can be paused to continue at a later date, keeps a streak counter.",
+            style = MaterialTheme.typography.headlineMedium
+        )
+    }
 
 }
 
 @Composable
 fun CreateRecurring() {
-
+    Column (
+        modifier = Modifier.padding(horizontal = 16.dp),
+    ) {
+        Text(
+            text = "New recurring",
+            style = MaterialTheme.typography.displaySmall
+        )
+        Text(
+            text = "Create a reminder that will recur after being completed, can be paused to continue at a later date.",
+            style = MaterialTheme.typography.headlineMedium
+        )
+    }
 }
+
 
 @Composable
 fun CreateSingleTime() {
-
+    Column (
+        modifier = Modifier.padding(horizontal = 16.dp),
+    ) {
+        Text(
+            text = "New single time",
+            style = MaterialTheme.typography.displaySmall
+        )
+        Text(
+            text = "Create a reminder that only happens once, will be deleted when complete.",
+            style = MaterialTheme.typography.headlineMedium
+        )
+    }
 }

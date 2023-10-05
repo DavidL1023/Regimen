@@ -7,6 +7,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -75,7 +76,7 @@ fun PagesScreen(
                 }
             },
             lazyStaggeredGridStateVisible = hiddenOnScroll,
-            bottomSheetBoxContent = { }
+            bottomSheetBoxContent = { CreatePage() }
         )
     )
 
@@ -280,8 +281,14 @@ fun PageSearchBar() {
 }
 
 // Fab click content
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreatePage() {
-
+    Column (
+        modifier = Modifier.padding(horizontal = 16.dp),
+    ) {
+        Text(
+            text = "New page",
+            style = MaterialTheme.typography.displaySmall
+        )
+    }
 }
