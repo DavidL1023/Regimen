@@ -6,6 +6,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,6 +65,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import app.regimen.DynamicScaffoldState
 import app.regimen.RemindMeRow
+import app.regimen.clickableWithoutRipple
 import app.regimen.fadingEdge
 
 @Composable
@@ -412,7 +415,7 @@ fun CreateHabit() {
         )
 
         // Date
-        Row (horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row (horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Date",
@@ -421,7 +424,7 @@ fun CreateHabit() {
                 OutlinedTextField(
                     value = date,
                     onValueChange = { date = it },
-                    label = { Text("Select a date") },
+                    label = { Text("Select date") },
                     readOnly = true,
                     trailingIcon = {
                         Icon(
@@ -441,7 +444,7 @@ fun CreateHabit() {
                 OutlinedTextField(
                     value = time,
                     onValueChange = { time = it },
-                    label = { Text("Select a time") },
+                    label = { Text("Select time") },
                     readOnly = true,
                     trailingIcon = {
                         Icon(
@@ -501,7 +504,7 @@ fun CreateRecurring() {
             setDescription = { description = it }
         )
 
-        Row (horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row (horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Date",
@@ -510,7 +513,7 @@ fun CreateRecurring() {
                 OutlinedTextField(
                     value = date,
                     onValueChange = { date = it },
-                    label = { Text("Select a date") },
+                    label = { Text("Select date") },
                     readOnly = true,
                     trailingIcon = {
                         Icon(
@@ -529,7 +532,7 @@ fun CreateRecurring() {
                 OutlinedTextField(
                     value = time,
                     onValueChange = { time = it },
-                    label = { Text("Select a time") },
+                    label = { Text("Select time") },
                     readOnly = true,
                     trailingIcon = {
                         Icon(
@@ -569,6 +572,7 @@ fun CreateRecurring() {
 fun CreateSingleTime() {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var specificTimeEnabled by remember { mutableStateOf(false) }
     var date by remember { mutableStateOf("")}
     var time by remember { mutableStateOf("")}
 
@@ -587,45 +591,67 @@ fun CreateSingleTime() {
             setDescription = { description = it }
         )
 
-        // Date
-        Row (horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
+        // Time, Date, and checkbox
+        val interactionSource = remember { MutableInteractionSource() }
+        Column {
+            // Specific time checkbox
+            Row(
+                modifier = Modifier.clickableWithoutRipple(
+                    onClick = { specificTimeEnabled = !specificTimeEnabled },
+                    interactionSource = interactionSource
+                ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "Date",
-                    style = MaterialTheme.typography.bodyMedium
+                    text = "Specific time",
+                    style = MaterialTheme.typography.bodyLarge
                 )
-                OutlinedTextField(
-                    value = date,
-                    onValueChange = { date = it },
-                    label = { Text("Select a date") },
-                    readOnly = true,
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.CalendarMonth,
-                            contentDescription = null
-                        )
-                    }
+                Checkbox(
+                    checked = specificTimeEnabled,
+                    onCheckedChange = { specificTimeEnabled = it }
                 )
             }
 
-            // Time
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Time",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                OutlinedTextField(
-                    value = time,
-                    onValueChange = { time = it },
-                    label = { Text("Select a time") },
-                    readOnly = true,
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.AccessTime,
-                            contentDescription = null
-                        )
-                    }
-                )
+            // Date
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Date",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    OutlinedTextField(
+                        value = date,
+                        onValueChange = { date = it },
+                        label = { Text("Select date") },
+                        readOnly = true,
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.CalendarMonth,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                }
+
+                // Time
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Time",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    OutlinedTextField(
+                        value = time,
+                        onValueChange = { time = it },
+                        label = { Text("Select time") },
+                        readOnly = true,
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.AccessTime,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                }
             }
         }
 

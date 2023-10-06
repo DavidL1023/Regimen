@@ -51,6 +51,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
@@ -217,10 +218,11 @@ fun MainScreen() {
         }
 
         // Background dim
+        val interactionSource = remember { MutableInteractionSource() }
         Box(modifier = Modifier
             .fillMaxSize()
             .background(color = Color.Black.copy(alpha = animateFloatAsState(if (toggledFocusDim) 0.18f else 0f).value))
-            .then(if (toggledFocusDim) Modifier.clickable {
+            .then(if (toggledFocusDim) Modifier.clickableWithoutRipple(interactionSource = interactionSource) {
                 toggledFocusDim = false
             } else Modifier)
         )
@@ -611,3 +613,20 @@ fun Modifier.fadingEdge(brush: Brush) = this
         drawContent()
         drawRect(brush = brush, blendMode = BlendMode.DstIn)
     }
+
+
+// Modifier to click without ripple effect
+fun Modifier.clickableWithoutRipple(
+    interactionSource: MutableInteractionSource,
+    onClick: () -> Unit
+) = composed(
+    factory = {
+        this.then(
+            Modifier.clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = { onClick() }
+            )
+        )
+    }
+)
