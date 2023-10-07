@@ -612,34 +612,29 @@ fun CreateSingleTime() {
                 )
             }
 
-            // Date
+            // Date and time
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Date",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    OutlinedTextField(
-                        value = date,
-                        onValueChange = { date = it },
-                        label = { Text("Select date") },
-                        readOnly = true,
-                        trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Filled.CalendarMonth,
-                                contentDescription = null
-                            )
-                        }
-                    )
-                }
+                OutlinedTextField(
+                    modifier = if (specificTimeEnabled) {
+                        Modifier.weight(1f)
+                    } else {
+                        Modifier
+                    },
+                    value = date,
+                    onValueChange = { date = it },
+                    label = { Text("Select date") },
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.CalendarMonth,
+                            contentDescription = null
+                        )
+                    }
+                )
 
-                // Time
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Time",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                if (specificTimeEnabled) {
                     OutlinedTextField(
+                        modifier = Modifier.weight(1f),
                         value = time,
                         onValueChange = { time = it },
                         label = { Text("Select time") },
@@ -654,6 +649,7 @@ fun CreateSingleTime() {
                 }
             }
         }
+
 
         // Select group
         CreateGroupSelector()
