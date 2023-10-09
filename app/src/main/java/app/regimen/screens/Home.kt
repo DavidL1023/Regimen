@@ -1,6 +1,7 @@
 package app.regimen.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -10,12 +11,14 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,20 +36,32 @@ import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Keyboard
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TimeInput
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -63,11 +78,18 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import app.regimen.DynamicScaffoldState
 import app.regimen.RemindMeRow
-import app.regimen.clickableWithoutRipple
 import app.regimen.fadingEdge
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onComposing: (DynamicScaffoldState) -> Unit
@@ -109,7 +131,6 @@ fun HomeScreen(
             fabBoxContextBottomSheetVisible = showBottomSheet,
             fabBoxContextDropdownDismissed = { showBottomSheet = !showBottomSheet },
             bottomSheetBoxContent = {
-                println(fabBoxItemClicked)
                 when (fabBoxItemClicked) {
                     "Habit" -> CreateHabit()
                     "Recurring" -> CreateRecurring()
@@ -568,6 +589,7 @@ fun CreateRecurring() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateSingleTime() {
     var title by remember { mutableStateOf("") }
@@ -592,64 +614,27 @@ fun CreateSingleTime() {
         )
 
         // Time, Date, and checkbox
-        val interactionSource = remember { MutableInteractionSource() }
         Column {
             // Specific time checkbox
-            Row(
-                modifier = Modifier.clickableWithoutRipple(
-                    onClick = { specificTimeEnabled = !specificTimeEnabled },
-                    interactionSource = interactionSource
-                ),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Specific time",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Checkbox(
-                    checked = specificTimeEnabled,
-                    onCheckedChange = { specificTimeEnabled = it }
-                )
-            }
+            LabelledCheckBox(
+                checked = specificTimeEnabled,
+                onCheckedChange = { specificTimeEnabled = it },
+                label = "Specific time"
+            )
 
             // Date and time
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    modifier = if (specificTimeEnabled) {
-                        Modifier.weight(1f)
-                    } else {
-                        Modifier
-                    },
-                    value = date,
-                    onValueChange = { date = it },
-                    label = { Text("Select date") },
-                    readOnly = true,
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.CalendarMonth,
-                            contentDescription = null
-                        )
-                    }
-                )
-
-                if (specificTimeEnabled) {
-                    OutlinedTextField(
-                        modifier = Modifier.weight(1f),
-                        value = time,
-                        onValueChange = { time = it },
-                        label = { Text("Select time") },
-                        readOnly = true,
-                        trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Filled.AccessTime,
-                                contentDescription = null
-                            )
-                        }
-                    )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(modifier = Modifier.weight(1f)) {
+                    CreateDatePickerDialog(date = date, setDate = { date = it })
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    CreateTimePickerDialog(time = time, setTime = { time = it }, enabled = specificTimeEnabled)
                 }
             }
-        }
 
+
+
+        }
 
         // Select group
         CreateGroupSelector()
@@ -774,5 +759,260 @@ fun CreateRecurringNumberWheel(
                 contentDescription = null
             )
         }
+    }
+}
+
+// Date picker
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MyDatePickerDialog(
+    onDateSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val datePickerState = rememberDatePickerState()
+
+    val selectedDate = datePickerState.selectedDateMillis?.let {
+        convertMillisToDate(it)
+    } ?: ""
+
+    DatePickerDialog(
+        onDismissRequest = { onDismiss() },
+        confirmButton = {
+            OutlinedButton(onClick = {
+                onDateSelected(selectedDate)
+                onDismiss()
+            }
+
+            ) {
+                Text(text = "OK")
+            }
+        },
+        dismissButton = {
+            Button(onClick = {
+                onDismiss()
+            }) {
+                Text(text = "Cancel")
+            }
+        }
+    ) {
+        DatePicker(
+            state = datePickerState
+        )
+    }
+}
+@Composable
+fun CreateDatePickerDialog(
+    date: String,
+    setDate: (String) -> Unit,
+    enabled: Boolean = true
+) {
+    var showDatePicker by remember {
+        mutableStateOf(false)
+    }
+
+    ReadonlyTextField(
+        value = date,
+        onValueChange = {/* not used */ },
+        onClick = { showDatePicker = true },
+        label = { Text("Select date") },
+        trailingIcon = {
+            Icon(
+                imageVector = Icons.Filled.CalendarMonth,
+                contentDescription = null
+            )
+        },
+        enabled = enabled
+    )
+
+    if (showDatePicker) {
+        MyDatePickerDialog(
+            onDateSelected = { setDate(it) },
+            onDismiss = { showDatePicker = false }
+        )
+    }
+}
+
+// Time to string format
+private fun convertMillisToDate(millis: Long): String {
+    val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.US)
+    formatter.timeZone = TimeZone.getTimeZone("UTC") // Set the time zone to UTC
+    return formatter.format(Date(millis))
+}
+
+// Time picker
+@Composable
+fun MyTimePickerDialog(
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit,
+    contentPicker: @Composable () -> Unit,
+    contentInput: @Composable () -> Unit,
+) {
+    var pickerEnabled by remember {
+        mutableStateOf(true)
+    }
+    Dialog(
+        onDismissRequest = onCancel,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false
+        ),
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .width(IntrinsicSize.Min)
+                .height(IntrinsicSize.Min)
+                .background(
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surface
+                )
+                .animateContentSize()
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 20.dp),
+                    text = "Select time",
+                    style = MaterialTheme.typography.labelMedium
+                )
+                if (pickerEnabled) {
+                    contentPicker()
+                } else {
+                    contentInput()
+                }
+                Row(
+                    modifier = Modifier
+                        .height(40.dp)
+                        .fillMaxWidth()
+                ) {
+                    IconButton(onClick = { pickerEnabled = !pickerEnabled }) {
+                        Icon(
+                            imageVector = if(!pickerEnabled) Icons.Outlined.AccessTime else Icons.Outlined.Keyboard,
+                            contentDescription = null
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Button(
+                        onClick = onCancel
+                    ) { Text("Cancel") }
+                    Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                    OutlinedButton(
+                        onClick = onConfirm
+                    ) { Text("OK") }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateTimePickerDialog (
+    time: String,
+    setTime: (String) -> Unit,
+    enabled: Boolean = true
+) {
+    var showTimePicker by remember { mutableStateOf(false) }
+    val state = rememberTimePickerState()
+    val formatter = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
+
+    ReadonlyTextField(
+        value = time,
+        onValueChange = {/* not used */ },
+        onClick = { showTimePicker = true },
+        label = { Text("Select time") },
+        trailingIcon = {
+            Icon(
+                imageVector = Icons.Filled.AccessTime,
+                contentDescription = null
+            )
+        },
+        enabled = enabled
+    )
+
+    if (showTimePicker) {
+        MyTimePickerDialog(
+            onCancel = { showTimePicker = false },
+            onConfirm = {
+                val cal = Calendar.getInstance()
+                cal.set(Calendar.HOUR_OF_DAY, state.hour)
+                cal.set(Calendar.MINUTE, state.minute)
+                cal.isLenient = false
+                setTime(formatter.format(cal.time))
+                showTimePicker = false
+            },
+            contentPicker = {TimePicker(state = state)},
+            contentInput = {TimeInput(state = state)}
+        )
+    }
+}
+
+// Text field that does not consume click so that you can have custom onCLick
+@Composable
+fun ReadonlyTextField(
+    modifier: Modifier = Modifier,
+    value: String,
+    onValueChange: (String) -> Unit,
+    onClick: () -> Unit,
+    label: @Composable () -> Unit,
+    trailingIcon: @Composable () -> Unit,
+    enabled: Boolean = true
+) {
+
+    Box {
+        OutlinedTextField(
+            modifier = modifier,
+            value = value,
+            onValueChange = onValueChange,
+            label = label,
+            trailingIcon = trailingIcon,
+            enabled = enabled
+        )
+
+        if (enabled) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .alpha(0f)
+                    .clickable(onClick = onClick),
+            )
+        }
+    }
+}
+
+// Checkbox with label
+@Composable
+fun LabelledCheckBox(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit),
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .clip(MaterialTheme.shapes.small)
+            .clickable(
+                indication = rememberRipple(color = MaterialTheme.colorScheme.primary),
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = { onCheckedChange(!checked) }
+            )
+            .requiredHeight(ButtonDefaults.MinHeight)
+            .padding(4.dp)
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = null
+        )
+
+        Spacer(Modifier.size(6.dp))
+
+        Text(
+            text = label,
+        )
     }
 }
