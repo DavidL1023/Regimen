@@ -19,15 +19,23 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContent
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreateNewFolder
@@ -48,6 +56,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +72,7 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -93,7 +103,6 @@ fun MainScreen() {
     // Bottom sheet toggle
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
-    val scope = rememberCoroutineScope()
 
     // Background focus dim
     var toggledFocusDim by remember { mutableStateOf(false) }
@@ -157,6 +166,9 @@ fun MainScreen() {
 
         // Bottom Sheet for FabClick
         if (showBottomSheet) {
+            val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+            val isKeyboardOpen by rememberUpdatedState(isImeVisible)
+
             ModalBottomSheet(
                 onDismissRequest = {
                     showBottomSheet = false
@@ -167,8 +179,14 @@ fun MainScreen() {
                 sheetState = sheetState
             ) {
                 // Sheet content
-                Box (modifier = Modifier.fillMaxWidth()) {
-                    dynamicScaffoldState.bottomSheetBoxContent.invoke(this)
+                Column(modifier = Modifier.verticalScroll (rememberScrollState())){
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        dynamicScaffoldState.bottomSheetBoxContent.invoke(this)
+                    }
+
+                    if (isKeyboardOpen) {
+                        Spacer(modifier = Modifier.padding(vertical = 100.dp))
+                    }
                 }
             }
         }

@@ -27,6 +27,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ArrowBackIosNew
@@ -46,7 +48,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +62,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TimePicker
@@ -77,9 +83,11 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.text.isDigitsOnly
 import app.regimen.DynamicScaffoldState
 import app.regimen.RemindMeRow
 import app.regimen.fadingEdge
@@ -418,7 +426,9 @@ fun CreateHabit() {
     var description by remember { mutableStateOf("") }
     var date by remember { mutableStateOf("")}
     var time by remember { mutableStateOf("")}
-    var recurringPeriod by remember { mutableIntStateOf(1) }
+    var specificTimeEnabled by remember { mutableStateOf(false) }
+    var recurringPeriod by remember { mutableStateOf("1") }
+    var recurringDay by remember { mutableStateOf("Mondays") }
 
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
@@ -435,53 +445,33 @@ fun CreateHabit() {
             setDescription = { description = it }
         )
 
-        // Date
-        Row (horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Date",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                OutlinedTextField(
-                    value = date,
-                    onValueChange = { date = it },
-                    label = { Text("Select date") },
-                    readOnly = true,
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.CalendarMonth,
-                            contentDescription = null
-                        )
-                    }
-                )
+        // Time, Date, and checkbox
+        Column {
+            // Specific time checkbox
+            LabelledCheckBox(
+                checked = specificTimeEnabled,
+                onCheckedChange = { specificTimeEnabled = it },
+                label = "Specific time"
+            )
+
+            // Date and time
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(modifier = Modifier.weight(1f)) {
+                    CreateDatePickerDialog(date = date, setDate = { date = it })
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    CreateTimePickerDialog(time = time, setTime = { time = it }, enabled = specificTimeEnabled)
+                }
             }
 
-            // Time
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Time",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                OutlinedTextField(
-                    value = time,
-                    onValueChange = { time = it },
-                    label = { Text("Select time") },
-                    readOnly = true,
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.AccessTime,
-                            contentDescription = null
-                        )
-                    }
-                )
-            }
         }
 
         // Recurring period
-        CreateRecurringNumberWheel(
+        CreateRecurringSelector(
             recurringPeriod = recurringPeriod,
-            subtractRecurringPeriod = { recurringPeriod-=1 },
-            addRecurringPeriod = { recurringPeriod+=1 }
+            setRecurringPeriod = { recurringPeriod = it },
+            recurringDay = recurringDay,
+            setRecurringDay = { recurringDay = it }
         )
 
         // Select group
@@ -508,7 +498,9 @@ fun CreateRecurring() {
     var description by remember { mutableStateOf("") }
     var date by remember { mutableStateOf("")}
     var time by remember { mutableStateOf("")}
-    var recurringPeriod by remember { mutableIntStateOf(1) }
+    var specificTimeEnabled by remember { mutableStateOf(false) }
+    var recurringPeriod by remember { mutableStateOf("1") }
+    var recurringDay by remember { mutableStateOf("Mondays") }
 
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
@@ -525,51 +517,33 @@ fun CreateRecurring() {
             setDescription = { description = it }
         )
 
-        Row (horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Date",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                OutlinedTextField(
-                    value = date,
-                    onValueChange = { date = it },
-                    label = { Text("Select date") },
-                    readOnly = true,
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.CalendarMonth,
-                            contentDescription = null
-                        )
-                    }
-                )
+        // Time, Date, and checkbox
+        Column {
+            // Specific time checkbox
+            LabelledCheckBox(
+                checked = specificTimeEnabled,
+                onCheckedChange = { specificTimeEnabled = it },
+                label = "Specific time"
+            )
+
+            // Date and time
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(modifier = Modifier.weight(1f)) {
+                    CreateDatePickerDialog(date = date, setDate = { date = it })
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    CreateTimePickerDialog(time = time, setTime = { time = it }, enabled = specificTimeEnabled)
+                }
             }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Time",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                OutlinedTextField(
-                    value = time,
-                    onValueChange = { time = it },
-                    label = { Text("Select time") },
-                    readOnly = true,
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.AccessTime,
-                            contentDescription = null
-                        )
-                    }
-                )
-            }
         }
 
         // Recurring period
-        CreateRecurringNumberWheel(
+        CreateRecurringSelector(
             recurringPeriod = recurringPeriod,
-            subtractRecurringPeriod = { recurringPeriod-=1 },
-            addRecurringPeriod = { recurringPeriod+=1 }
+            setRecurringPeriod = { recurringPeriod = it },
+            recurringDay = recurringDay,
+            setRecurringDay = { recurringDay = it }
         )
 
         // Select group
@@ -631,8 +605,6 @@ fun CreateSingleTime() {
                     CreateTimePickerDialog(time = time, setTime = { time = it }, enabled = specificTimeEnabled)
                 }
             }
-
-
 
         }
 
@@ -712,54 +684,65 @@ fun CreateTitleAndDescription(
             value = description,
             onValueChange = { setDescription(it) },
             label = { Text("Enter description") },
-            minLines = 3
+            minLines = 3,
+            maxLines = 5
         )
     }
 }
 
+// Recurring area
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateRecurringNumberWheel(
-    recurringPeriod: Int,
-    subtractRecurringPeriod: () -> Unit,
-    addRecurringPeriod: () -> Unit
+fun CreateRecurringSelector(
+    recurringPeriod: String,
+    setRecurringPeriod: (String) -> Unit,
+    recurringDay: String,
+    setRecurringDay: (String) -> Unit
 ) {
-    Text(
-        text = "Recurring period",
-        style = MaterialTheme.typography.bodyMedium
-    )
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        IconButton(
-            modifier = Modifier.size(40.dp),
-            onClick = { subtractRecurringPeriod() },
-            enabled = recurringPeriod > 1
-        ) {
-            Icon(
-                imageVector = Icons.Filled.ArrowBackIosNew,
-                contentDescription = null
-            )
-        }
+    var customRecurringEnabled by remember { mutableStateOf(false) }
+    val daysOfWeek = listOf("Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays", "Sundays")
+    val selectedChipIndex = remember { mutableIntStateOf(daysOfWeek.indexOf(recurringDay)) }
 
+    Column {
         Text(
-            text = recurringPeriod.toString() + if (recurringPeriod==1) " day" else " days",
-            style = MaterialTheme.typography.bodyLarge
+            text = "Recurring period",
+            style = MaterialTheme.typography.bodyMedium
         )
 
-        IconButton(
-            modifier = Modifier
-                .size(40.dp)
-                .rotate(180f),
-            onClick = { addRecurringPeriod() },
-            enabled = recurringPeriod < 365
-        ) {
-            Icon(
-                imageVector = Icons.Filled.ArrowBackIosNew,
-                contentDescription = null
-            )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(daysOfWeek.size) { index ->
+                val isSelected = index == selectedChipIndex.intValue
+                val selectedIndex = if (isSelected) -1 else index
+
+                FilterChip(
+                    selected = isSelected,
+                    onClick = {
+                        selectedChipIndex.intValue = selectedIndex
+                        if(selectedIndex == -1) setRecurringDay("") else setRecurringDay(daysOfWeek[selectedIndex])
+                    },
+                    label = { Text(daysOfWeek[index]) },
+                    enabled = !customRecurringEnabled
+                )
+            }
         }
+
+        LabelledCheckBox(
+            checked = customRecurringEnabled,
+            onCheckedChange = { customRecurringEnabled = it },
+            label = "Custom period"
+        )
+
+        OutlinedTextField(
+            value = recurringPeriod,
+            onValueChange = { if (it.isDigitsOnly()) setRecurringPeriod(it) },
+            label = { Text("Days between") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            enabled = customRecurringEnabled,
+            singleLine = true
+        )
+
     }
+
 }
 
 // Date picker
@@ -812,7 +795,7 @@ fun CreateDatePickerDialog(
 
     ReadonlyTextField(
         value = date,
-        onValueChange = {/* not used */ },
+        onValueChange = { /* not used */ },
         onClick = { showDatePicker = true },
         label = { Text("Select date") },
         trailingIcon = {
@@ -922,7 +905,7 @@ fun CreateTimePickerDialog (
 
     ReadonlyTextField(
         value = time,
-        onValueChange = {/* not used */ },
+        onValueChange = { /* not used */ },
         onClick = { showTimePicker = true },
         label = { Text("Select time") },
         trailingIcon = {
