@@ -1,4 +1,4 @@
-package app.regimen
+package app.regimen.di
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey

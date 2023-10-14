@@ -1,7 +1,6 @@
 package app.regimen.di
 
 import android.content.Context
-import app.regimen.PreferenceDataStore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
