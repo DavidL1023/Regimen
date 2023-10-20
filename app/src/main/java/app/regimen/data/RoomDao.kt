@@ -1,5 +1,6 @@
 package app.regimen.data
 
+import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -12,6 +13,7 @@ import app.regimen.data.RecurringReminder
 import app.regimen.data.SingleTimeReminder
 import kotlinx.coroutines.flow.Flow
 
+@Dao
 interface GroupDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(group: Group)
@@ -29,6 +31,7 @@ interface GroupDao {
     fun getAllGroups(): Flow<List<Group>>
 }
 
+@Dao
 interface SingleTimeReminderDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(reminder: SingleTimeReminder)
@@ -47,6 +50,7 @@ interface SingleTimeReminderDao {
 
 }
 
+@Dao
 interface RecurringReminderDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(reminder: RecurringReminder)
@@ -64,6 +68,7 @@ interface RecurringReminderDao {
     fun getAllRecurringReminders(): Flow<List<RecurringReminder>>
 }
 
+@Dao
 interface HabitDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(habit: Habit)
@@ -81,6 +86,7 @@ interface HabitDao {
     fun getAllHabits(): Flow<List<Habit>>
 }
 
+@Dao
 interface PageDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(page: Page)

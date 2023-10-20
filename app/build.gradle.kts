@@ -5,6 +5,9 @@ plugins {
     // Hilt
     kotlin("kapt")
     id("com.google.dagger.hilt.android")
+
+    // Ksp
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -72,7 +75,8 @@ dependencies {
 
     // Room
     implementation("androidx.room:room-runtime:2.5.2")
-    annotationProcessor("androidx.room:room-compiler:2.5.2")
+    ksp("androidx.room:room-compiler:2.5.2")
+    implementation("androidx.room:room-ktx:2.5.2")
 
     // Preferences DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")

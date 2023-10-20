@@ -13,16 +13,16 @@ data class Group(
     @PrimaryKey(autoGenerate = true)
     val id: Int,
     val title: String,
-    val color: Color,
-    val icon: ImageVector
+    //val color: Color, //todo these cant be stored in database, find workaround
+    //val icon: ImageVector
 )
 
 data class CommonReminderProperties(
     val title: String,
-    val group: Group,
+    //val group: Group,
     val specificTimeEnabled: Boolean,
-    val localDate: LocalDate,
-    val localDateTime: LocalDateTime,
+    //val localDate: LocalDate,
+    //val localDateTime: LocalDateTime,
     val description: String,
     val customProgressActive: Float,
     val customProgressGoal: Float,
@@ -65,8 +65,8 @@ data class Page(
     @PrimaryKey(autoGenerate = true)
     val id: Int,
     val title: String,
-    val group: Group,
+    //val group: Group,
     val body: String, //todo probably going to be different for rich text
-    val dateTimeCreated: LocalDateTime,
-    val dateTimeLastEdited: LocalDateTime
+    //val dateTimeCreated: LocalDateTime,
+    //val dateTimeLastEdited: LocalDateTime
 )

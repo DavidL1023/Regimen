@@ -712,13 +712,12 @@ fun CreateRecurringSelector(
         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             items(daysOfWeek.size) { index ->
                 val isSelected = index == selectedChipIndex.intValue
-                val selectedIndex = if (isSelected) -1 else index
 
                 FilterChip(
                     selected = isSelected,
                     onClick = {
-                        selectedChipIndex.intValue = selectedIndex
-                        if(selectedIndex == -1) setRecurringDay("") else setRecurringDay(daysOfWeek[selectedIndex])
+                        selectedChipIndex.intValue = index
+                        setRecurringDay(daysOfWeek[index])
                     },
                     label = { Text(daysOfWeek[index]) },
                     enabled = !customRecurringEnabled
