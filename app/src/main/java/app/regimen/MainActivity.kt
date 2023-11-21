@@ -15,7 +15,7 @@ import app.regimen.data.RecurringReminderDao
 import app.regimen.data.SingleTimeReminderDao
 import app.regimen.di.AppModule.providePreferenceDataStore
 import app.regimen.di.PreferenceDataStore
-import app.regimen.ui.theme.RegimenTheme
+import app.regimen.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
                     isDarkTheme = it
 
                     setContent {
-                        RegimenTheme(isDarkTheme) {
+                        AppTheme(isDarkTheme) {
                             Surface(
                                 modifier = Modifier.fillMaxSize(),
                             ) {

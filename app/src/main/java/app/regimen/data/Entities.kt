@@ -1,11 +1,8 @@
 package app.regimen.data
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Entity(tableName = "groups")
@@ -13,16 +10,15 @@ data class Group(
     @PrimaryKey(autoGenerate = true)
     val id: Int,
     val title: String,
-    //val color: Color, //todo these cant be stored in database, find workaround
-    //val icon: ImageVector
+    val color: Int, //Color is assigned as integer to be decoded later
+    val icon: Int //Same with icon
 )
 
 data class CommonReminderProperties(
     val title: String,
-    //val group: Group,
+    val group: Int,
     val specificTimeEnabled: Boolean,
-    //val localDate: LocalDate,
-    //val localDateTime: LocalDateTime,
+    val localDateTime: LocalDateTime,
     val description: String,
     val customProgressActive: Float,
     val customProgressGoal: Float,
@@ -65,8 +61,8 @@ data class Page(
     @PrimaryKey(autoGenerate = true)
     val id: Int,
     val title: String,
-    //val group: Group,
+    val group: Int,
     val body: String, //todo probably going to be different for rich text
-    //val dateTimeCreated: LocalDateTime,
-    //val dateTimeLastEdited: LocalDateTime
+    val dateTimeCreated: LocalDateTime,
+    val dateTimeLastEdited: LocalDateTime
 )
