@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -66,6 +67,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.regimen.DynamicScaffoldState
+import app.regimen.data.GroupDao
 import app.regimen.fadingEdge
 
 // Used for proper content hiding on scroll dependent on which tab is selected
@@ -76,7 +78,8 @@ var selectedGroup = 0
 
 @Composable
 fun GroupsScreen(
-    onComposing: (DynamicScaffoldState) -> Unit
+    onComposing: (DynamicScaffoldState) -> Unit,
+    groupDao: GroupDao
 ) {
     // Used to hide on scroll
     val lazyListState = rememberLazyListState()
@@ -366,7 +369,7 @@ fun ExpandableGroupList(isVisible: Boolean) {
     val targetHeight = if (isVisible) 138.dp else 0.dp
     val animatedHeight by animateDpAsState(targetValue = targetHeight, animationSpec = spring(dampingRatio = 3f))
 
-    val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.03f to Color.Red, 0.97f to Color.Red, 1f to Color.Transparent)
+    val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.01f to Color.Red, 0.99f to Color.Red, 1f to Color.Transparent)
 
     LazyRow(
         modifier = Modifier
@@ -422,6 +425,9 @@ fun CreateGroup() {
             setDescription = { description = it}
         )
 
+        // Color picker
+        ColorPicker()
+
         // Save button
         Button(
             modifier = Modifier.fillMaxWidth(),
@@ -433,5 +439,63 @@ fun CreateGroup() {
         }
 
         Spacer(modifier = Modifier.padding(vertical = 12.dp))
+    }
+}
+
+// Define an enum class for your colors
+enum class CustomColor(val color: Color) {
+    Red(Color(0xFFC93C20)),
+    Green(Color(0xFF57A639)),
+    Blue(Color(0xFF3B83BD)),
+    Yellow(Color(0xFFFFFF00)),
+    Purple(Color(0xFF800080)),
+    Cyan(Color(0xFF00FFFF)),
+    Magenta(Color(0xFFFF00FF)),
+    Orange(Color(0xFFFFA500)),
+    Pink(Color(0xFFFFC0CB)),
+    Brown(Color(0xFF8E402A)),
+    Teal(Color(0xFF008080)),
+    TerraBrown(Color(0xFF4E3B31)),
+    Violet(Color(0xFF924E7D)),
+    Olive(Color(0xFF808000)),
+    SlateGray(Color(0xFF708090));
+
+    fun toComposeColor(): Color {
+        return color
+    }
+}
+
+@Composable
+fun ColorPicker() {
+    var selectedColor by remember { mutableStateOf(CustomColor.Red) }
+
+    Column {
+        Text(
+            text = "Select Color",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(bottom = 3.dp)
+        )
+
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            itemsIndexed(CustomColor.values()) { index, customColor ->
+                val composeColor = customColor.toComposeColor()
+                val isSelected = selectedColor == customColor
+                val alpha = animateFloatAsState(if (isSelected) 1f else 0.5f).value
+                val roundedShape = animateDpAsState(if (isSelected) 20.dp else 10.dp).value
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(roundedShape))
+                        .size(50.dp)
+                        .background(
+                            color = composeColor.copy(alpha = alpha),
+                            shape = RoundedCornerShape(roundedShape)
+                        )
+                        .clickable {
+                            selectedColor = customColor
+                        }
+                )
+            }
+        }
     }
 }

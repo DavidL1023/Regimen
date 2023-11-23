@@ -8,7 +8,7 @@ import java.time.LocalDateTime
 @Entity(tableName = "groups")
 data class Group(
     @PrimaryKey(autoGenerate = true)
-    val id: Int,
+    val id: Int = 0,
     val title: String,
     val color: Int, //Color is assigned as integer to be decoded later
     val icon: Int //Same with icon
@@ -28,14 +28,14 @@ data class CommonReminderProperties(
 @Entity(tableName = "single time reminders")
 data class SingleTimeReminder(
     @PrimaryKey(autoGenerate = true)
-    val id: Int,
+    val id: Int = 0,
     @Embedded val commonProperties: CommonReminderProperties
 )
 
 @Entity(tableName = "recurring reminders")
 data class RecurringReminder(
     @PrimaryKey(autoGenerate = true)
-    val id: Int,
+    val id: Int = 0,
     @Embedded val commonProperties: CommonReminderProperties,
     val customPeriodEnabled: Boolean,
     val recurringPeriod: Int,
@@ -46,7 +46,7 @@ data class RecurringReminder(
 @Entity(tableName = "habits")
 data class Habit(
     @PrimaryKey(autoGenerate = true)
-    val id: Int,
+    val id: Int = 0,
     @Embedded val commonProperties: CommonReminderProperties,
     val customPeriodEnabled: Boolean,
     val recurringPeriod: Int,
@@ -59,7 +59,7 @@ data class Habit(
 @Entity(tableName = "pages")
 data class Page(
     @PrimaryKey(autoGenerate = true)
-    val id: Int,
+    val id: Int = 0,
     val title: String,
     val group: Int,
     val body: String, //todo probably going to be different for rich text

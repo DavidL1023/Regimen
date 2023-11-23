@@ -20,17 +20,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContent
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -55,7 +51,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -82,18 +77,37 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import app.regimen.data.AppDatabase
+import app.regimen.data.GroupDao
+import app.regimen.data.HabitDao
+import app.regimen.data.PageDao
+import app.regimen.data.RecurringReminderDao
+import app.regimen.data.SingleTimeReminderDao
 import app.regimen.screens.GroupsScreen
 import app.regimen.screens.HomeScreen
 import app.regimen.screens.PagesScreen
 import app.regimen.screens.SettingsScreen
 
+// Database Dao's
+lateinit var groupDao: GroupDao
+lateinit var singleTimeReminderDao: SingleTimeReminderDao
+lateinit var recurringReminderDao: RecurringReminderDao
+lateinit var habitDao: HabitDao
+lateinit var pageDao: PageDao
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(db: AppDatabase) {
     // Used for dynamic scaffold
     var dynamicScaffoldState by remember {
         mutableStateOf(DynamicScaffoldState())
     }
+
+    groupDao = db.getGroupDao()
+    singleTimeReminderDao = db.getSingleTimeReminderDao()
+    recurringReminderDao = db.getRecurringReminderDao()
+    habitDao = db.getHabitDao()
+    pageDao = db.getPageDao()
 
     // Bottom nav bar destination tracker
     val navController = rememberNavController()
@@ -203,7 +217,9 @@ fun MainScreen() {
                 HomeScreen(
                     onComposing = {
                         dynamicScaffoldState = it
-                    }
+                    },
+                    singleTimeReminderDao,
+                    recurringReminderDao
                 )
             }
             composable(
@@ -212,7 +228,8 @@ fun MainScreen() {
                 PagesScreen(
                     onComposing = {
                         dynamicScaffoldState = it
-                    }
+                    },
+                    pageDao
                 )
             }
             composable(
@@ -221,7 +238,8 @@ fun MainScreen() {
                 GroupsScreen(
                     onComposing = {
                         dynamicScaffoldState = it
-                    }
+                    },
+                    groupDao
                 )
             }
             composable(

@@ -7,7 +7,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,10 +49,12 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import app.regimen.DynamicScaffoldState
+import app.regimen.data.PageDao
 
 @Composable
 fun PagesScreen(
-    onComposing: (DynamicScaffoldState) -> Unit
+    onComposing: (DynamicScaffoldState) -> Unit,
+    pageDao: PageDao
 ) {
     // Used to hide on scroll
     val lazyStaggeredGridState = rememberLazyStaggeredGridState()

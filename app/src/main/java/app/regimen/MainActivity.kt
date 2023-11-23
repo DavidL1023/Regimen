@@ -6,11 +6,12 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import app.regimen.data.AppDatabase
+import app.regimen.data.Group
 import app.regimen.data.GroupDao
 import app.regimen.data.HabitDao
 import app.regimen.data.PageDao
-import app.regimen.data.RecurringReminder
 import app.regimen.data.RecurringReminderDao
 import app.regimen.data.SingleTimeReminderDao
 import app.regimen.di.AppModule.providePreferenceDataStore
@@ -26,13 +27,8 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    // The database/room variables
+    // The database/room
     lateinit var db: AppDatabase
-    lateinit var groupDao: GroupDao
-    lateinit var singleTimeReminderDao: SingleTimeReminderDao
-    lateinit var recurringReminderDao: RecurringReminderDao
-    lateinit var habitDao: HabitDao
-    lateinit var pageDao: PageDao
 
     // Preference DataStore singleton
     @Inject
@@ -40,15 +36,13 @@ class MainActivity : ComponentActivity() {
 
     // App
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Handle the splash screen transition.
+        installSplashScreen()
+
         super.onCreate(savedInstanceState)
 
         // Prepare to use the database
         db = AppDatabase.getDatabase(this)
-        groupDao = db.getGroupDao()
-        singleTimeReminderDao = db.getSingleTimeReminderDao()
-        recurringReminderDao = db.getRecurringReminderDao()
-        habitDao = db.getHabitDao()
-        pageDao = db.getPageDao()
 
         // Create dataStore
         dataStoreSingleton = providePreferenceDataStore(this)
@@ -65,7 +59,7 @@ class MainActivity : ComponentActivity() {
                             Surface(
                                 modifier = Modifier.fillMaxSize(),
                             ) {
-                                MainScreen()
+                                MainScreen(db)
                             }
                         }
                     }
