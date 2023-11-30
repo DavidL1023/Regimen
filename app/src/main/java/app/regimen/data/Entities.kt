@@ -10,6 +10,7 @@ data class Group(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val title: String,
+    val description: String,
     val color: Int, //Color is assigned as integer to be decoded later
     val icon: Int //Same with icon
 )
@@ -63,6 +64,6 @@ data class Page(
     val title: String,
     val group: Int,
     val body: String, //todo probably going to be different for rich text
-    val dateTimeCreated: LocalDateTime,
-    val dateTimeLastEdited: LocalDateTime
+    val dateTimeModified: LocalDateTime,
+    val dateTimeCreated: LocalDateTime
 )

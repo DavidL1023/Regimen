@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
@@ -51,6 +52,7 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -67,8 +69,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.regimen.DynamicScaffoldState
+import app.regimen.data.AppDatabase
+import app.regimen.data.Group
 import app.regimen.data.GroupDao
 import app.regimen.fadingEdge
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 // Used for proper content hiding on scroll dependent on which tab is selected
 var onRemindersTab = true
@@ -76,11 +83,16 @@ var onRemindersTab = true
 // Used for persistent selected group state
 var selectedGroup = 0
 
+// Dao
+lateinit var groupDaoScreen: GroupDao
+
 @Composable
 fun GroupsScreen(
     onComposing: (DynamicScaffoldState) -> Unit,
     groupDao: GroupDao
 ) {
+    groupDaoScreen = groupDao
+
     // Used to hide on scroll
     val lazyListState = rememberLazyListState()
     val lazyStaggeredGridState = rememberLazyStaggeredGridState()
@@ -313,7 +325,7 @@ fun PagesGroupTab(lazyStaggeredGridState: LazyStaggeredGridState) {
             }
 
             items(15) { index ->
-                PageCard(false)
+                PageCard("","","","",false)
             }
 
             item(span = StaggeredGridItemSpan.FullLine) {
@@ -348,11 +360,11 @@ fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
             contentDescription = null,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(28.dp)
+                .padding(start = 26.dp, end = 26.dp, bottom = 16.dp)
         )
 
         Text(
-            text = "Group $name",
+            text = name,
             style = textStyle,
             modifier = Modifier
                 .padding(12.dp)
@@ -366,10 +378,13 @@ fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
 fun ExpandableGroupList(isVisible: Boolean) {
     var selectedItem by remember { mutableIntStateOf(selectedGroup) }
 
-    val targetHeight = if (isVisible) 138.dp else 0.dp
+    val targetHeight = if (isVisible) 130.dp else 0.dp
     val animatedHeight by animateDpAsState(targetValue = targetHeight, animationSpec = spring(dampingRatio = 3f))
 
     val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.01f to Color.Red, 0.99f to Color.Red, 1f to Color.Transparent)
+
+    // Retrieve the list of groups from the DAO
+    val groupsState by groupDaoScreen.getAllGroups().collectAsState(initial = emptyList())
 
     LazyRow(
         modifier = Modifier
@@ -382,15 +397,14 @@ fun ExpandableGroupList(isVisible: Boolean) {
             Spacer(modifier = Modifier.width(8.dp))
         }
 
-        items(5) { index ->
-            val isSelected = selectedItem == index
-
+        items(groupsState) { group ->
+            val isSelected = selectedItem == group.id
             GroupItem(
-                name = index.toString(),
+                name = group.title,
                 selected = isSelected,
                 onSelectedChange = {
-                    if (isVisible) { // Fixes bug where it can be selected even when folded
-                        selectedItem = if (isSelected) -1 else index
+                    if (isVisible) {
+                        selectedItem = if (isSelected) -1 else group.id
                         selectedGroup = selectedItem
                     }
                 }
@@ -413,6 +427,7 @@ fun CreateGroup() {
     ) {
         var title by remember { mutableStateOf("") }
         var description by remember { mutableStateOf("") }
+        var color by remember { mutableIntStateOf(0)}
 
         // Explanation
         CreateTopExplanation(header = "Create group", subtitle = "Groups are to organize your reminders and pages in one location.")
@@ -426,15 +441,19 @@ fun CreateGroup() {
         )
 
         // Color picker
-        ColorPicker()
+        ColorPicker( setColor = { color = it } )
 
         // Save button
         Button(
             modifier = Modifier.fillMaxWidth(),
-            onClick = { /*TODO*/ }
+            onClick = {
+                CoroutineScope(Dispatchers.IO).launch {
+                    groupDaoScreen.insert(Group(title=title, description=description, color=color, icon=0))
+                }
+            }
         ) {
             Text(
-                text = "Save",
+                text = "Save"
             )
         }
 
@@ -443,30 +462,31 @@ fun CreateGroup() {
 }
 
 // Define an enum class for your colors
-enum class CustomColor(val color: Color) {
-    Red(Color(0xFFC93C20)),
-    Green(Color(0xFF57A639)),
-    Blue(Color(0xFF3B83BD)),
-    Yellow(Color(0xFFFFFF00)),
-    Purple(Color(0xFF800080)),
-    Cyan(Color(0xFF00FFFF)),
-    Magenta(Color(0xFFFF00FF)),
-    Orange(Color(0xFFFFA500)),
-    Pink(Color(0xFFFFC0CB)),
-    Brown(Color(0xFF8E402A)),
-    Teal(Color(0xFF008080)),
-    TerraBrown(Color(0xFF4E3B31)),
-    Violet(Color(0xFF924E7D)),
-    Olive(Color(0xFF808000)),
-    SlateGray(Color(0xFF708090));
+enum class CustomColor(val color: Color, val intValue: Int) {
+    Red(Color(0xFFC93C20), 0),
+    Green(Color(0xFF57A639), 1),
+    Blue(Color(0xFF3B83BD), 2),
+    Yellow(Color(0xFFFFFF00), 3),
+    Purple(Color(0xFF800080), 4),
+    Cyan(Color(0xFF00FFFF), 5),
+    Magenta(Color(0xFFFF00FF), 6),
+    Orange(Color(0xFFFFA500), 7),
+    Pink(Color(0xFFFFC0CB), 8),
+    Brown(Color(0xFF8E402A), 9),
+    Teal(Color(0xFF008080), 10),
+    TerraBrown(Color(0xFF4E3B31), 11),
+    Violet(Color(0xFF924E7D), 12),
+    Olive(Color(0xFF808000), 13),
+    SlateGray(Color(0xFF708090), 14);
 
     fun toComposeColor(): Color {
         return color
     }
+
 }
 
 @Composable
-fun ColorPicker() {
+fun ColorPicker(setColor: (Int) -> Unit) {
     var selectedColor by remember { mutableStateOf(CustomColor.Red) }
 
     Column {
@@ -493,6 +513,7 @@ fun ColorPicker() {
                         )
                         .clickable {
                             selectedColor = customColor
+                            setColor(customColor.intValue)
                         }
                 )
             }

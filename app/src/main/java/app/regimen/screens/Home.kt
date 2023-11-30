@@ -84,22 +84,39 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.text.isDigitsOnly
 import app.regimen.DynamicScaffoldState
 import app.regimen.RemindMeRow
+import app.regimen.data.CommonReminderProperties
+import app.regimen.data.Page
+import app.regimen.data.PageDao
 import app.regimen.data.RecurringReminderDao
+import app.regimen.data.SingleTimeReminder
 import app.regimen.data.SingleTimeReminderDao
 import app.regimen.fadingEdge
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-@OptIn(ExperimentalMaterial3Api::class)
+// Dao
+lateinit var singleTimeDaoScreen: SingleTimeReminderDao
+lateinit var recurringDaoScreen: RecurringReminderDao
+
 @Composable
 fun HomeScreen(
     onComposing: (DynamicScaffoldState) -> Unit,
     singleTimeReminderDao: SingleTimeReminderDao,
     recurringReminderDao: RecurringReminderDao
 ) {
+    singleTimeDaoScreen = singleTimeReminderDao
+    recurringDaoScreen = recurringReminderDao
+
     // Used to hide on scroll
     val lazyListState = rememberLazyListState()
     val hiddenOnScroll by remember(lazyListState) {
@@ -232,9 +249,8 @@ fun LazyReminderColumn(lazyListState: LazyListState) {
 }
 
 // A reminder card
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReminderCard(displayGroup: Boolean) {
+fun ReminderCard(displayGroup: Boolean = true) {
     val cardHeight = if (displayGroup) 160.dp else 120.dp
 
     Card(
@@ -417,6 +433,26 @@ fun CategoryFilterSegmented() {
 
 }
 
+// Converts string dates and time to localDateTimes
+fun toLocalDateTime(date: String, time: String, specificTimeEnabled: Boolean): LocalDateTime {
+    val formatter: DateTimeFormatter
+    val dateTimeString: String
+    val localDateTime: LocalDateTime
+    if (specificTimeEnabled) {
+        dateTimeString = "$date $time"
+        formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm a")
+        localDateTime = LocalDateTime.parse(dateTimeString, formatter)
+    }else {
+        dateTimeString = date
+        formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+        val localDate = LocalDate.parse(dateTimeString, formatter)
+        val beginningOfDay = LocalTime.MIDNIGHT
+        localDateTime = LocalDateTime.of(localDate, beginningOfDay)
+    }
+
+    return localDateTime
+}
+
 // Fab click content
 @Composable
 fun CreateHabit() {
@@ -561,7 +597,6 @@ fun CreateRecurring() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateSingleTime() {
     var title by remember { mutableStateOf("") }
@@ -612,7 +647,24 @@ fun CreateSingleTime() {
         // Save button
         Button(
             modifier = Modifier.fillMaxWidth(),
-            onClick = { /*TODO*/ }
+            onClick = {
+                val localDateTime = toLocalDateTime(date, time, specificTimeEnabled)
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    val properties = CommonReminderProperties(
+                        title = title,
+                        group = 0,
+                        specificTimeEnabled = specificTimeEnabled,
+                        localDateTime = localDateTime,
+                        description = description,
+                        customProgressActive = 0.0f,
+                        customProgressGoal = 0.0f,
+                        customUnit = ""
+                    )
+                    singleTimeDaoScreen.insert(SingleTimeReminder(commonProperties = properties))
+                }
+
+            }
         ) {
             Text(
                 text = "Save",

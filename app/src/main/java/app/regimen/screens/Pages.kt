@@ -14,10 +14,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -38,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,13 +52,26 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import app.regimen.DynamicScaffoldState
+import app.regimen.data.Group
+import app.regimen.data.GroupDao
+import app.regimen.data.Page
 import app.regimen.data.PageDao
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+// Dao
+lateinit var pageDaoScreen: PageDao
 
 @Composable
 fun PagesScreen(
     onComposing: (DynamicScaffoldState) -> Unit,
     pageDao: PageDao
 ) {
+    pageDaoScreen = pageDao
+
     // Used to hide on scroll
     val lazyStaggeredGridState = rememberLazyStaggeredGridState()
     val hiddenOnScroll by remember(lazyStaggeredGridState) {
@@ -104,10 +120,18 @@ fun PagesScreen(
     }
 }
 
+// Format dates
+fun formatLocalDateTime(localDateTime: LocalDateTime, pattern: String): String {
+    val formatter = DateTimeFormatter.ofPattern(pattern)
+    return localDateTime.format(formatter)
+}
 
 // Grid of pages
 @Composable
 fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
+    // Retrieve the list of groups from the DAO
+    val pagesState by pageDaoScreen.getAllPages().collectAsState(initial = emptyList())
+
     LazyVerticalStaggeredGrid(
         state = lazyStaggeredGridState,
         columns = StaggeredGridCells.Fixed(2),
@@ -122,8 +146,25 @@ fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
                 Spacer(modifier = Modifier.height(0.5.dp))
             }
 
-            items(18) { index ->
-                PageCard(true)
+            items(pagesState) { page ->
+                val timeDisplay: String
+                val dateTimeModified = page.dateTimeModified
+                val currentTime = LocalDateTime.now()
+
+                timeDisplay = if (dateTimeModified.toLocalDate() == currentTime.toLocalDate()) { // Same day
+                    formatLocalDateTime(dateTimeModified, "'Today at' h:mm a")
+                } else if (dateTimeModified.year != currentTime.year) { // Different year
+                    formatLocalDateTime(dateTimeModified, "MMM dd, yyyy")
+                } else { // Same year different day
+                    formatLocalDateTime(dateTimeModified, "EEEE, MMM dd")
+                }
+
+                PageCard(
+                    header = page.title,
+                    body = page.body,
+                    timeDisplay = timeDisplay,
+                    groupDisplay = "Group"
+                )
             }
 
             item(span = StaggeredGridItemSpan.FullLine) {
@@ -188,7 +229,7 @@ fun SortExpandable() {
 // A page card
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PageCard(displayGroup: Boolean) {
+fun PageCard(header: String, body: String, timeDisplay: String, groupDisplay: String, displayGroup: Boolean = true) {
     Card(
         onClick = { /* Do something */ },
         modifier = Modifier
@@ -203,16 +244,16 @@ fun PageCard(displayGroup: Boolean) {
                 modifier = Modifier
                     .padding(bottom = 4.dp)
                     .alpha(0.5f),
-                text = "Date created / modified",
+                text = timeDisplay,
                 style = MaterialTheme.typography.labelSmall
             )
             Text(
-                text = "Header",
+                text = header,
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
                 style = MaterialTheme.typography.bodyMedium,
-                text = "Body"
+                text = body
             )
 
             if (displayGroup) {
@@ -220,7 +261,7 @@ fun PageCard(displayGroup: Boolean) {
                     modifier = Modifier
                         .alpha(0.85f)
                         .padding(top = 2.dp),
-                    text = "Group",
+                    text = groupDisplay,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -309,7 +350,12 @@ fun CreatePage() {
         // Save button
         Button(
             modifier = Modifier.fillMaxWidth(),
-            onClick = { /*TODO*/ }
+            onClick = {
+                CoroutineScope(Dispatchers.IO).launch {
+                    val currentTime = LocalDateTime.now()
+                    pageDaoScreen.insert(Page(title=title, group=0, body=description, dateTimeModified=currentTime, dateTimeCreated=currentTime))
+                }
+            }
         ) {
             Text(
                 text = "Save",
