@@ -87,6 +87,8 @@ import app.regimen.screens.GroupsScreen
 import app.regimen.screens.HomeScreen
 import app.regimen.screens.PagesScreen
 import app.regimen.screens.SettingsScreen
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 // Database Dao's
 lateinit var groupDao: GroupDao
@@ -217,9 +219,7 @@ fun MainScreen(db: AppDatabase) {
                 HomeScreen(
                     onComposing = {
                         dynamicScaffoldState = it
-                    },
-                    singleTimeReminderDao,
-                    recurringReminderDao
+                    }
                 )
             }
             composable(
@@ -228,8 +228,7 @@ fun MainScreen(db: AppDatabase) {
                 PagesScreen(
                     onComposing = {
                         dynamicScaffoldState = it
-                    },
-                    pageDao
+                    }
                 )
             }
             composable(
@@ -238,8 +237,7 @@ fun MainScreen(db: AppDatabase) {
                 GroupsScreen(
                     onComposing = {
                         dynamicScaffoldState = it
-                    },
-                    groupDao
+                    }
                 )
             }
             composable(
@@ -666,3 +664,9 @@ fun Modifier.clickableWithoutRipple(
         )
     }
 )
+
+// Format dates
+fun formatLocalDateTime(localDateTime: LocalDateTime, pattern: String): String {
+    val formatter = DateTimeFormatter.ofPattern(pattern)
+    return localDateTime.format(formatter)
+}

@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -72,44 +73,48 @@ import app.regimen.DynamicScaffoldState
 import app.regimen.data.AppDatabase
 import app.regimen.data.Group
 import app.regimen.data.GroupDao
+import app.regimen.data.Habit
+import app.regimen.data.RecurringReminder
+import app.regimen.data.SingleTimeReminder
 import app.regimen.fadingEdge
+import app.regimen.formatLocalDateTime
+import app.regimen.groupDao
+import app.regimen.habitDao
+import app.regimen.pageDao
+import app.regimen.recurringReminderDao
+import app.regimen.singleTimeReminderDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.LocalTime
 
-// Used for proper content hiding on scroll dependent on which tab is selected
-var onRemindersTab = true
+// Used to filter by group
+lateinit var setSelectedGroupId: (Int) -> Unit
+lateinit var getSelectedGroupId: () -> Int
 
-// Used for persistent selected group state
-var selectedGroup = 0
-
-// Dao
-lateinit var groupDaoScreen: GroupDao
+// Used to know when lazy lists have first index visible
+lateinit var setListFirstVisible: (Boolean) -> Unit
+lateinit var setStaggeredListFirstVisible: (Boolean) -> Unit
 
 @Composable
 fun GroupsScreen(
-    onComposing: (DynamicScaffoldState) -> Unit,
-    groupDao: GroupDao
+    onComposing: (DynamicScaffoldState) -> Unit
 ) {
-    groupDaoScreen = groupDao
+    // The selected group to filter by
+    var selectedGroupId by remember { mutableIntStateOf(1) }
 
-    // Used to hide on scroll
-    val lazyListState = rememberLazyListState()
-    val lazyStaggeredGridState = rememberLazyStaggeredGridState()
+    // Set the functions to manipulate selectedGroupId
+    setSelectedGroupId = { selectedGroupId = it }
+    getSelectedGroupId = { selectedGroupId }
 
-    val hiddenOnScrollList by remember(lazyListState) {
-        derivedStateOf {
-            lazyListState.firstVisibleItemIndex == 0
-        }
-    }
-    val hiddenOnScrollStaggered by remember(lazyStaggeredGridState) {
-        derivedStateOf {
-            lazyStaggeredGridState.firstVisibleItemIndex == 0
-        }
-    }
+    // Bool to know if first index is visible for hiding fab
+    var listFirstVisible by remember { mutableStateOf(true) }
+    var staggeredListFirstVisible by remember { mutableStateOf(true) }
 
-    val lazyListStateVisible = hiddenOnScrollList && onRemindersTab
-    val lazyStaggeredGridStateVisible = hiddenOnScrollStaggered && !onRemindersTab
+    // Set functions to manipulate first index booleans
+    setListFirstVisible = { listFirstVisible = it }
+    setStaggeredListFirstVisible = { staggeredListFirstVisible = it }
 
     // Dynamic toolbar
     onComposing(
@@ -124,8 +129,8 @@ fun GroupsScreen(
                     )
                 }
             },
-            lazyListStateVisible = lazyListStateVisible,
-            lazyStaggeredGridStateVisible = lazyStaggeredGridStateVisible,
+            lazyListStateVisible = listFirstVisible,
+            lazyStaggeredGridStateVisible = staggeredListFirstVisible,
             bottomSheetBoxContent = { CreateGroup() }
         )
     )
@@ -134,7 +139,7 @@ fun GroupsScreen(
     Column {
 
         // Tab selector (includes group list)
-        GroupTabs(lazyListState, lazyStaggeredGridState)
+        GroupTabs()
 
     }
 }
@@ -146,9 +151,7 @@ enum class GroupTabsEnum {
 }
 
 @Composable
-fun GroupTabs(
-    lazyListState: LazyListState, lazyStaggeredGridState: LazyStaggeredGridState
-) {
+fun GroupTabs() {
     var state by remember { mutableStateOf(GroupTabsEnum.Reminders) }
     val titles = GroupTabsEnum.values().toList()
     val icons = listOf(Icons.Default.CalendarMonth, Icons.Default.Description)
@@ -182,10 +185,7 @@ fun GroupTabs(
                 Tab(
                     modifier = Modifier.clip(RoundedCornerShape(24.dp)),
                     selected = state == title,
-                    onClick = {
-                        state = title
-                        onRemindersTab = state.ordinal == 0
-                    },
+                    onClick = { state = title },
                     text = { Text(text = title.name) },
                     icon = {
                         Icon(
@@ -200,23 +200,19 @@ fun GroupTabs(
         }
 
         // Display tab content with animation between them
-        AnimatedTabContent(state, lazyListState, lazyStaggeredGridState)
+        AnimatedTabContent(state)
     }
 }
 
 // Tab content with animation between them
 @Composable
-fun AnimatedTabContent(
-    state: GroupTabsEnum,
-    lazyListState: LazyListState,
-    lazyStaggeredGridState: LazyStaggeredGridState
-) {
+fun AnimatedTabContent(state: GroupTabsEnum) {
     AnimatedContent(
         targetState = state,
         content = { selectedTab ->
             when (selectedTab) {
-                GroupTabsEnum.Reminders -> RemindersGroupTab(lazyListState)
-                GroupTabsEnum.Pages -> PagesGroupTab(lazyStaggeredGridState)
+                GroupTabsEnum.Reminders -> RemindersGroupTab()
+                GroupTabsEnum.Pages -> PagesGroupTab()
             }
         },
         transitionSpec = {
@@ -275,13 +271,31 @@ fun toggleableTextButton(): Boolean {
 
 // Tab content for reminders
 @Composable
-fun RemindersGroupTab(lazyListState: LazyListState) {
+fun RemindersGroupTab() {
+    val lazyListState = rememberLazyListState()
+    val listFirstVisible by remember(lazyListState) {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex == 0
+        }
+    }
+    setListFirstVisible(listFirstVisible)
+    setStaggeredListFirstVisible(false)
+
+    val selectedGroupId = getSelectedGroupId()
+
+    val singleRemindersState by singleTimeReminderDao.getAllSingleTimeReminders().collectAsState(initial = emptyList())
+    val recurringRemindersState by recurringReminderDao.getAllRecurringReminders().collectAsState(initial = emptyList())
+    val habitsState by habitDao.getAllHabits().collectAsState(initial = emptyList())
+
+    val combinedReminders = (singleRemindersState + recurringRemindersState + habitsState)
+    val sortedReminders = combinedReminders.sortedBy { it.localDateTime }
+
     LazyColumn(
         state = lazyListState,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         content = {
 
             item {
@@ -292,8 +306,32 @@ fun RemindersGroupTab(lazyListState: LazyListState) {
                 }
             }
 
-            items(8) { index ->
-                ReminderCard(false)
+            items(sortedReminders) { reminder ->
+                if (reminder.groupId == selectedGroupId) { // Only show if contains selected group
+                    val format: String =
+                        if (reminder.localDateTime.toLocalTime() == LocalTime.MIDNIGHT) {
+                            "d MMM"
+                        } else {
+                            "d MMM · h:mm a"
+                        }
+
+                    val reminderType = when (reminder) {
+                        is SingleTimeReminder -> "Single Time"
+                        is RecurringReminder -> "Recurring"
+                        is Habit -> "Habit"
+                        else -> "Unknown"
+                    }
+
+                    ReminderCard(
+                        type = reminderType,
+                        title = reminder.title,
+                        timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
+                        groupDisplay = "",
+                        displayGroup = false
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
             }
 
             item {
@@ -305,7 +343,21 @@ fun RemindersGroupTab(lazyListState: LazyListState) {
 
 // Tab content for pages
 @Composable
-fun PagesGroupTab(lazyStaggeredGridState: LazyStaggeredGridState) {
+fun PagesGroupTab() {
+    val lazyStaggeredGridState = rememberLazyStaggeredGridState()
+    val staggeredListFirstVisible by remember(lazyStaggeredGridState) {
+        derivedStateOf {
+            lazyStaggeredGridState.firstVisibleItemIndex == 0
+        }
+    }
+    setStaggeredListFirstVisible(staggeredListFirstVisible)
+    setListFirstVisible(false)
+
+    val selectedGroupId = getSelectedGroupId()
+
+    val pagesState by pageDao.getAllPages().collectAsState(initial = emptyList())
+    val sortedPages = pagesState.sortedBy { it.dateTimeModified }
+
     LazyVerticalStaggeredGrid(
         state = lazyStaggeredGridState,
         columns = StaggeredGridCells.Fixed(2),
@@ -324,8 +376,29 @@ fun PagesGroupTab(lazyStaggeredGridState: LazyStaggeredGridState) {
                 }
             }
 
-            items(15) { index ->
-                PageCard("","","","",false)
+            items(sortedPages) { page ->
+                if (page.groupId == selectedGroupId) { // Only show if contains selected group
+                    val timeDisplay: String
+                    val dateTimeModified = page.dateTimeModified
+                    val currentTime = LocalDateTime.now()
+
+                    timeDisplay =
+                        if (dateTimeModified.toLocalDate() == currentTime.toLocalDate()) { // Same day
+                            formatLocalDateTime(dateTimeModified, "'Today at' h:mm a")
+                        } else if (dateTimeModified.year != currentTime.year) { // Different year
+                            formatLocalDateTime(dateTimeModified, "MMM dd, yyyy")
+                        } else { // Same year different day
+                            formatLocalDateTime(dateTimeModified, "EEEE, MMM dd")
+                        }
+
+                    PageCard(
+                        header = page.title,
+                        body = page.body,
+                        timeDisplay = timeDisplay,
+                        groupDisplay = "",
+                        displayGroup = false
+                    )
+                }
             }
 
             item(span = StaggeredGridItemSpan.FullLine) {
@@ -376,15 +449,15 @@ fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
 // Expandable group row
 @Composable
 fun ExpandableGroupList(isVisible: Boolean) {
-    var selectedItem by remember { mutableIntStateOf(selectedGroup) }
 
+    val selectedGroupId = getSelectedGroupId()
     val targetHeight = if (isVisible) 130.dp else 0.dp
     val animatedHeight by animateDpAsState(targetValue = targetHeight, animationSpec = spring(dampingRatio = 3f))
 
     val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.01f to Color.Red, 0.99f to Color.Red, 1f to Color.Transparent)
 
     // Retrieve the list of groups from the DAO
-    val groupsState by groupDaoScreen.getAllGroups().collectAsState(initial = emptyList())
+    val groupsState by groupDao.getAllGroups().collectAsState(initial = emptyList())
 
     LazyRow(
         modifier = Modifier
@@ -398,14 +471,14 @@ fun ExpandableGroupList(isVisible: Boolean) {
         }
 
         items(groupsState) { group ->
-            val isSelected = selectedItem == group.id
+
+            val isSelected = selectedGroupId == group.id
             GroupItem(
                 name = group.title,
                 selected = isSelected,
                 onSelectedChange = {
                     if (isVisible) {
-                        selectedItem = if (isSelected) -1 else group.id
-                        selectedGroup = selectedItem
+                        setSelectedGroupId( if (isSelected) -1 else group.id )
                     }
                 }
             )
@@ -448,7 +521,13 @@ fun CreateGroup() {
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 CoroutineScope(Dispatchers.IO).launch {
-                    groupDaoScreen.insert(Group(title=title, description=description, color=color, icon=0))
+                    groupDao.insert(
+                        Group(
+                            title=title,
+                            description=description,
+                            color=color,
+                            icon=0)
+                    )
                 }
             }
         ) {
@@ -462,7 +541,7 @@ fun CreateGroup() {
 }
 
 // Define an enum class for your colors
-enum class CustomColor(val color: Color, val intValue: Int) {
+enum class CustomColor(val color: Color, val intValue: Int) { //TODO move this and image ints to another class
     Red(Color(0xFFC93C20), 0),
     Green(Color(0xFF57A639), 1),
     Blue(Color(0xFF3B83BD), 2),

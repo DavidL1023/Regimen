@@ -8,12 +8,14 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
@@ -43,34 +46,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import app.regimen.DynamicScaffoldState
-import app.regimen.data.Group
-import app.regimen.data.GroupDao
 import app.regimen.data.Page
-import app.regimen.data.PageDao
+import app.regimen.formatLocalDateTime
+import app.regimen.groupDao
+import app.regimen.pageDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-// Dao
-lateinit var pageDaoScreen: PageDao
-
 @Composable
 fun PagesScreen(
-    onComposing: (DynamicScaffoldState) -> Unit,
-    pageDao: PageDao
+    onComposing: (DynamicScaffoldState) -> Unit
 ) {
-    pageDaoScreen = pageDao
 
     // Used to hide on scroll
     val lazyStaggeredGridState = rememberLazyStaggeredGridState()
@@ -120,17 +120,11 @@ fun PagesScreen(
     }
 }
 
-// Format dates
-fun formatLocalDateTime(localDateTime: LocalDateTime, pattern: String): String {
-    val formatter = DateTimeFormatter.ofPattern(pattern)
-    return localDateTime.format(formatter)
-}
-
 // Grid of pages
 @Composable
 fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
     // Retrieve the list of groups from the DAO
-    val pagesState by pageDaoScreen.getAllPages().collectAsState(initial = emptyList())
+    val pagesState by pageDao.getAllPages().collectAsState(initial = emptyList())
 
     LazyVerticalStaggeredGrid(
         state = lazyStaggeredGridState,
@@ -159,12 +153,16 @@ fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
                     formatLocalDateTime(dateTimeModified, "EEEE, MMM dd")
                 }
 
-                PageCard(
-                    header = page.title,
-                    body = page.body,
-                    timeDisplay = timeDisplay,
-                    groupDisplay = "Group"
-                )
+                val group = groupDao.getGroup(page.groupId).collectAsState(null).value
+
+                if (group != null) {
+                    PageCard(
+                        header = page.title,
+                        body = page.body,
+                        timeDisplay = timeDisplay,
+                        groupDisplay = group.title
+                    )
+                }
             }
 
             item(span = StaggeredGridItemSpan.FullLine) {
@@ -178,7 +176,7 @@ fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SortExpandable() {
-    val options = listOf("Date edited", "Date created", "Name")
+    val options = listOf("Date edited", "Date created", "Header")
     var expanded by remember { mutableStateOf(false) }
     var selectedOptionText by remember { mutableStateOf(options[0]) }
 
@@ -257,13 +255,29 @@ fun PageCard(header: String, body: String, timeDisplay: String, groupDisplay: St
             )
 
             if (displayGroup) {
-                Text(
-                    modifier = Modifier
-                        .alpha(0.85f)
-                        .padding(top = 2.dp),
-                    text = groupDisplay,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Spacer(modifier = Modifier.padding(2.dp))
+
+                Row (
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        modifier = Modifier
+                            .alpha(0.80f)
+                            .width(16.dp),
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = null
+                    )
+
+                    Text(
+                        modifier = Modifier
+                            .alpha(0.80f)
+                            .padding(top = 2.dp),
+                        text = groupDisplay,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
             }
         }
     }
@@ -326,13 +340,14 @@ fun PageSearchBar() {
 // Fab click content
 @Composable
 fun CreatePage() {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var groupId by remember { mutableIntStateOf(-1) }
+
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        var title by remember { mutableStateOf("") }
-        var description by remember { mutableStateOf("") }
-
         // Explanation
         CreateTopExplanation(header = "Create page", subtitle = "Keep pages for details and to store anything.")
 
@@ -345,7 +360,7 @@ fun CreatePage() {
         )
 
         // Group
-        CreateGroupSelector()
+        CreateGroupSelector( setGroup = { groupId = it } )
 
         // Save button
         Button(
@@ -353,7 +368,14 @@ fun CreatePage() {
             onClick = {
                 CoroutineScope(Dispatchers.IO).launch {
                     val currentTime = LocalDateTime.now()
-                    pageDaoScreen.insert(Page(title=title, group=0, body=description, dateTimeModified=currentTime, dateTimeCreated=currentTime))
+                    pageDao.insert(
+                        Page(
+                            title = title,
+                            groupId = groupId,
+                            body = description,
+                            dateTimeModified = currentTime,
+                            dateTimeCreated = currentTime)
+                    )
                 }
             }
         ) {

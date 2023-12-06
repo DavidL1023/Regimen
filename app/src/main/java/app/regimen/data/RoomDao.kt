@@ -66,6 +66,7 @@ interface RecurringReminderDao {
 
     @Query("SELECT * FROM `recurring reminders`")
     fun getAllRecurringReminders(): Flow<List<RecurringReminder>>
+
 }
 
 @Dao
@@ -84,6 +85,7 @@ interface HabitDao {
 
     @Query("SELECT * FROM habits")
     fun getAllHabits(): Flow<List<Habit>>
+
 }
 
 @Dao
@@ -102,4 +104,5 @@ interface PageDao {
 
     @Query("SELECT * FROM pages")
     fun getAllPages(): Flow<List<Page>>
+
 }

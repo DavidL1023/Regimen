@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
@@ -24,15 +25,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.EventRepeat
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Today
@@ -64,6 +69,7 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -84,13 +90,20 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.text.isDigitsOnly
 import app.regimen.DynamicScaffoldState
 import app.regimen.RemindMeRow
-import app.regimen.data.CommonReminderProperties
+import app.regimen.data.Habit
+import app.regimen.data.HabitDao
 import app.regimen.data.Page
 import app.regimen.data.PageDao
+import app.regimen.data.RecurringReminder
 import app.regimen.data.RecurringReminderDao
 import app.regimen.data.SingleTimeReminder
 import app.regimen.data.SingleTimeReminderDao
 import app.regimen.fadingEdge
+import app.regimen.formatLocalDateTime
+import app.regimen.groupDao
+import app.regimen.habitDao
+import app.regimen.recurringReminderDao
+import app.regimen.singleTimeReminderDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -104,18 +117,20 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-// Dao
-lateinit var singleTimeDaoScreen: SingleTimeReminderDao
-lateinit var recurringDaoScreen: RecurringReminderDao
+// Used to filter by chip dates
+lateinit var setSelectedChipIndex: (Int) -> Unit
+lateinit var getSelectedChipIndex: () -> Int
 
 @Composable
 fun HomeScreen(
-    onComposing: (DynamicScaffoldState) -> Unit,
-    singleTimeReminderDao: SingleTimeReminderDao,
-    recurringReminderDao: RecurringReminderDao
+    onComposing: (DynamicScaffoldState) -> Unit
 ) {
-    singleTimeDaoScreen = singleTimeReminderDao
-    recurringDaoScreen = recurringReminderDao
+    // The selected date to filter by
+    var selectedChipIndex by remember { mutableIntStateOf(-1) }
+
+    // Set the functions to manipulate selectedChipIndex
+    setSelectedChipIndex = { value -> selectedChipIndex = value }
+    getSelectedChipIndex = { selectedChipIndex }
 
     // Used to hide on scroll
     val lazyListState = rememberLazyListState()
@@ -226,6 +241,13 @@ fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit, callback: 
 // Column for the reminder cards
 @Composable
 fun LazyReminderColumn(lazyListState: LazyListState) {
+    val singleRemindersState by singleTimeReminderDao.getAllSingleTimeReminders().collectAsState(initial = emptyList())
+    val recurringRemindersState by recurringReminderDao.getAllRecurringReminders().collectAsState(initial = emptyList())
+    val habitsState by habitDao.getAllHabits().collectAsState(initial = emptyList())
+
+    val combinedReminders = (singleRemindersState + recurringRemindersState + habitsState)
+    val sortedReminders = combinedReminders.sortedBy { it.localDateTime }
+
     LazyColumn(
         state = lazyListState,
         modifier = Modifier
@@ -237,8 +259,30 @@ fun LazyReminderColumn(lazyListState: LazyListState) {
                 Spacer(modifier = Modifier.height(0.5.dp))
             }
 
-            items(5) { index ->
-                ReminderCard(true)
+            items(sortedReminders) { reminder ->
+                val format: String = if(reminder.localDateTime.toLocalTime() == LocalTime.MIDNIGHT) {
+                    "d MMM"
+                } else {
+                    "d MMM · h:mm a"
+                }
+
+                val reminderType = when (reminder) {
+                    is SingleTimeReminder -> "Single Time"
+                    is RecurringReminder -> "Recurring"
+                    is Habit -> "Habit"
+                    else -> "Unknown"
+                }
+
+                val group = groupDao.getGroup(reminder.groupId).collectAsState(null).value
+
+                if (group != null) {
+                    ReminderCard(
+                        type = reminderType,
+                        title = reminder.title,
+                        timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
+                        groupDisplay = group.title
+                    )
+                }
             }
 
             item {
@@ -250,74 +294,87 @@ fun LazyReminderColumn(lazyListState: LazyListState) {
 
 // A reminder card
 @Composable
-fun ReminderCard(displayGroup: Boolean = true) {
-    val cardHeight = if (displayGroup) 160.dp else 120.dp
+fun ReminderCard(type: String, title: String, timeDisplay: String, groupDisplay: String, displayGroup: Boolean = true) {
 
     Card(
         onClick = { /* Do something */ },
         modifier = Modifier
+            .heightIn(min = 110.dp, max = 150.dp)
             .fillMaxWidth()
-            .height(cardHeight)
             .shadow(elevation = 4.dp, shape = MaterialTheme.shapes.medium)
     ) {
-        Box(Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier.padding(12.dp)
-            )  {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        )  {
 
-                Text(
-                    modifier = Modifier
-                        .background(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            CircleShape
-                        ) // Oval background
-                        .padding(8.dp), // Padding for the oval background
-                    text = "Type",
-                    style = MaterialTheme.typography.labelMedium
+            Text(
+                modifier = Modifier
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        CircleShape
+                    ) // Oval background
+                    .padding(8.dp), // Padding for the oval background
+                text = type,
+                style = MaterialTheme.typography.labelMedium
+            )
+
+            Text(
+                modifier = Modifier
+                    .padding(top = 6.dp, bottom = 8.dp),
+                text = title,
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            Row (
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CalendarMonth,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
                 )
 
                 Text(
-                    modifier = Modifier
-                        .padding(top = 6.dp, bottom = 8.dp),
-                    text = "Reminder",
-                    style = MaterialTheme.typography.titleLarge
+                    text = timeDisplay, //16 Feb · 11:00 PM
+                    style = MaterialTheme.typography.bodyMedium
                 )
+            }
+
+            if (displayGroup) {
+                Spacer(modifier = Modifier.padding(6.dp))
 
                 Row (
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.CalendarMonth,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier
+                            .alpha(0.80f)
+                            .width(16.dp),
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = null
                     )
-                    Spacer(modifier = Modifier.padding(horizontal = 2.dp))
+
                     Text(
-                        text = "16 Feb · 11:00 PM",
+                        modifier = Modifier.alpha(0.80f),
+                        text = groupDisplay,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
 
-                if (displayGroup) {
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Text(
-                        modifier = Modifier.alpha(0.85f),
-                        text = "Group",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
             }
         }
     }
 }
 
 
+
 // Row of calendar filter chips
 @Composable
 private fun CalendarFilterChips() {
-    val selectedChipIndex = remember { mutableIntStateOf(-1) }
     val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.03f to Color.Red, 0.97f to Color.Red, 1f to Color.Transparent)
+    val selectedChipIndex = getSelectedChipIndex()
 
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -331,11 +388,13 @@ private fun CalendarFilterChips() {
         }
 
         items(14) { index ->
-            val isSelected = index == selectedChipIndex.intValue
+            val isSelected = index == selectedChipIndex
             val selectedIndex = if (isSelected) -1 else index
             VerticalChip(
                 isSelected = isSelected,
-                onClick = { selectedChipIndex.intValue = selectedIndex },
+                onClick = {
+                    setSelectedChipIndex(selectedIndex)
+                },
                 topText = "Thu",
                 bottomText = "${index + 1}"
             )
@@ -393,7 +452,7 @@ private fun VerticalChip(
 @Composable
 fun CategoryFilterSegmented() {
     var selectedIndex by remember { mutableIntStateOf(0) }
-    val options = listOf("All", "Recurring", "Single Time")
+    val options = listOf("All", "Repeating", "Single Time")
     val icons = listOf(
         null,
         Icons.Default.Cached,
@@ -460,7 +519,9 @@ fun CreateHabit() {
     var description by remember { mutableStateOf("") }
     var date by remember { mutableStateOf("")}
     var time by remember { mutableStateOf("")}
+    var groupId by remember { mutableIntStateOf(-1) }
     var specificTimeEnabled by remember { mutableStateOf(false) }
+    var customPeriodEnabled by remember { mutableStateOf(false) }
     var recurringPeriod by remember { mutableStateOf("1") }
     var recurringDay by remember { mutableStateOf("Mondays") }
 
@@ -505,16 +566,42 @@ fun CreateHabit() {
             recurringPeriod = recurringPeriod,
             setRecurringPeriod = { recurringPeriod = it },
             recurringDay = recurringDay,
-            setRecurringDay = { recurringDay = it }
+            setRecurringDay = { recurringDay = it },
+            setCustomPeriodEnabled = { customPeriodEnabled = it }
         )
 
         // Select group
-        CreateGroupSelector()
+        CreateGroupSelector( setGroup = { groupId = it } )
 
         // Save button
         Button(
             modifier = Modifier.fillMaxWidth(),
-            onClick = { /*TODO*/ }
+            onClick = {
+                val localDateTime = toLocalDateTime(date, time, specificTimeEnabled)
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    habitDao.insert(
+                        Habit(
+                            title = title,
+                            groupId = groupId,
+                            specificTimeEnabled = specificTimeEnabled,
+                            localDateTime = localDateTime,
+                            description = description,
+                            customProgressActive = 0.0f,
+                            customProgressGoal = 0.0f,
+                            customUnit = "",
+
+                            customPeriodEnabled = customPeriodEnabled,
+                            recurringPeriod = recurringPeriod.toInt(),
+                            recurringDay = recurringDay,
+                            paused = false,
+                            streakActive = 0,
+                            streakHighest = 0
+                        )
+                    )
+                }
+
+            }
         ) {
             Text(
                 text = "Save",
@@ -532,7 +619,9 @@ fun CreateRecurring() {
     var description by remember { mutableStateOf("") }
     var date by remember { mutableStateOf("")}
     var time by remember { mutableStateOf("")}
+    var groupId by remember { mutableIntStateOf(-1) }
     var specificTimeEnabled by remember { mutableStateOf(false) }
+    var customPeriodEnabled by remember { mutableStateOf(false) }
     var recurringPeriod by remember { mutableStateOf("1") }
     var recurringDay by remember { mutableStateOf("Mondays") }
 
@@ -577,16 +666,40 @@ fun CreateRecurring() {
             recurringPeriod = recurringPeriod,
             setRecurringPeriod = { recurringPeriod = it },
             recurringDay = recurringDay,
-            setRecurringDay = { recurringDay = it }
+            setRecurringDay = { recurringDay = it },
+            setCustomPeriodEnabled = { customPeriodEnabled = it }
         )
 
         // Select group
-        CreateGroupSelector()
+        CreateGroupSelector( setGroup = { groupId = it } )
 
         // Save button
         Button(
             modifier = Modifier.fillMaxWidth(),
-            onClick = { /*TODO*/ }
+            onClick = {
+                val localDateTime = toLocalDateTime(date, time, specificTimeEnabled)
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    recurringReminderDao.insert(
+                        RecurringReminder(
+                            title = title,
+                            groupId = groupId,
+                            specificTimeEnabled = specificTimeEnabled,
+                            localDateTime = localDateTime,
+                            description = description,
+                            customProgressActive = 0.0f,
+                            customProgressGoal = 0.0f,
+                            customUnit = "",
+
+                            customPeriodEnabled = customPeriodEnabled,
+                            recurringPeriod = recurringPeriod.toInt(),
+                            recurringDay = recurringDay,
+                            paused = false
+                        )
+                    )
+                }
+
+            }
         ) {
             Text(
                 text = "Save",
@@ -602,8 +715,9 @@ fun CreateSingleTime() {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var specificTimeEnabled by remember { mutableStateOf(false) }
-    var date by remember { mutableStateOf("")}
-    var time by remember { mutableStateOf("")}
+    var groupId by remember { mutableIntStateOf(-1) }
+    var date by remember { mutableStateOf("") }
+    var time by remember { mutableStateOf("") }
 
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
@@ -642,7 +756,7 @@ fun CreateSingleTime() {
         }
 
         // Select group
-        CreateGroupSelector()
+        CreateGroupSelector( setGroup = { groupId = it } )
 
         // Save button
         Button(
@@ -651,17 +765,18 @@ fun CreateSingleTime() {
                 val localDateTime = toLocalDateTime(date, time, specificTimeEnabled)
 
                 CoroutineScope(Dispatchers.IO).launch {
-                    val properties = CommonReminderProperties(
-                        title = title,
-                        group = 0,
-                        specificTimeEnabled = specificTimeEnabled,
-                        localDateTime = localDateTime,
-                        description = description,
-                        customProgressActive = 0.0f,
-                        customProgressGoal = 0.0f,
-                        customUnit = ""
+                    singleTimeReminderDao.insert(
+                        SingleTimeReminder(
+                            title = title,
+                            groupId = groupId,
+                            specificTimeEnabled = specificTimeEnabled,
+                            localDateTime = localDateTime,
+                            description = description,
+                            customProgressActive = 0.0f,
+                            customProgressGoal = 0.0f,
+                            customUnit = ""
+                        )
                     )
-                    singleTimeDaoScreen.insert(SingleTimeReminder(commonProperties = properties))
                 }
 
             }
@@ -676,12 +791,37 @@ fun CreateSingleTime() {
 }
 
 @Composable
-fun CreateGroupSelector() {
+fun CreateGroupSelector(setGroup: (Int) -> Unit) {
+    val groupList = groupDao.getAllGroups().collectAsState(initial = emptyList())
+    val selectedGroupId = remember { mutableIntStateOf(-1) }
+
     Column {
         Text(
             text = "Select group",
             style = MaterialTheme.typography.bodyMedium
         )
+
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(groupList.value) { group ->
+                val isSelected = group.id == selectedGroupId.intValue
+
+                FilterChip(
+                    selected = isSelected,
+                    onClick = {
+                        selectedGroupId.intValue = group.id
+                        setGroup(selectedGroupId.intValue)
+                    },
+                    label = { Text(group.title) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = null
+                        )
+                    }
+                )
+
+            }
+        }
 
     }
 }
@@ -747,7 +887,8 @@ fun CreateRecurringSelector(
     recurringPeriod: String,
     setRecurringPeriod: (String) -> Unit,
     recurringDay: String,
-    setRecurringDay: (String) -> Unit
+    setRecurringDay: (String) -> Unit,
+    setCustomPeriodEnabled: (Boolean) -> Unit
 ) {
     var customRecurringEnabled by remember { mutableStateOf(false) }
     val daysOfWeek = listOf("Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays", "Sundays")
@@ -777,14 +918,17 @@ fun CreateRecurringSelector(
 
         LabelledCheckBox(
             checked = customRecurringEnabled,
-            onCheckedChange = { customRecurringEnabled = it },
+            onCheckedChange = {
+                customRecurringEnabled = it
+                setCustomPeriodEnabled(it)
+            },
             label = "Custom period"
         )
 
         OutlinedTextField(
             value = recurringPeriod,
             onValueChange = { if (it.isDigitsOnly()) setRecurringPeriod(it) },
-            label = { Text("Days between") },
+            label = { Text("Days between reminder") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             enabled = customRecurringEnabled,
             singleLine = true
