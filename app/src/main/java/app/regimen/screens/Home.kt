@@ -112,29 +112,41 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
 // Used to filter by chip dates
-lateinit var setSelectedChipIndex: (Int) -> Unit
-lateinit var getSelectedChipIndex: () -> Int
+lateinit var setSelectedChipDate: (LocalDate?) -> Unit
+lateinit var getSelectedChipDate: () -> LocalDate?
+
+// Used to filter by types
+lateinit var setSelectedSegmentText: (String) -> Unit
+lateinit var getSelectedSegmentText: () -> String
 
 @Composable
 fun HomeScreen(
     onComposing: (DynamicScaffoldState) -> Unit
 ) {
     // The selected date to filter by
-    var selectedChipIndex by remember { mutableIntStateOf(-1) }
+    var selectedChipDate by remember { mutableStateOf<LocalDate?>(null) }
 
     // Set the functions to manipulate selectedChipIndex
-    setSelectedChipIndex = { value -> selectedChipIndex = value }
-    getSelectedChipIndex = { selectedChipIndex }
+    setSelectedChipDate = { selectedChipDate = it }
+    getSelectedChipDate = { selectedChipDate }
+
+    // Selected segment to filter by
+    var selectedSegmentText by remember { mutableStateOf("All") }
+
+    // Set the functions to manipulate selected segment
+    setSelectedSegmentText = { selectedSegmentText = it }
+    getSelectedSegmentText = { selectedSegmentText }
 
     // Used to hide on scroll
     val lazyListState = rememberLazyListState()
-    val hiddenOnScroll by remember(lazyListState) {
+    val listFirstVisible by remember(lazyListState) {
         derivedStateOf {
             lazyListState.firstVisibleItemIndex == 0
         }
@@ -165,7 +177,7 @@ fun HomeScreen(
                 )
             },
             expandableFab = true,
-            lazyListStateVisible = hiddenOnScroll,
+            lazyListStateVisible = listFirstVisible,
             fabBoxContextBottomSheetVisible = showBottomSheet,
             fabBoxContextDropdownDismissed = { showBottomSheet = !showBottomSheet },
             bottomSheetBoxContent = {
@@ -183,7 +195,7 @@ fun HomeScreen(
 
         // Horizontal scroll for calendar filter
         AnimatedVisibility(
-            visible = hiddenOnScroll,
+            visible = listFirstVisible,
             enter = expandVertically(),
             exit = shrinkVertically()
         ) {
@@ -253,35 +265,49 @@ fun LazyReminderColumn(lazyListState: LazyListState) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
         content = {
             item {
                 Spacer(modifier = Modifier.height(0.5.dp))
             }
 
             items(sortedReminders) { reminder ->
-                val format: String = if(reminder.localDateTime.toLocalTime() == LocalTime.MIDNIGHT) {
-                    "d MMM"
-                } else {
-                    "d MMM · h:mm a"
-                }
-
-                val reminderType = when (reminder) {
-                    is SingleTimeReminder -> "Single Time"
-                    is RecurringReminder -> "Recurring"
-                    is Habit -> "Habit"
-                    else -> "Unknown"
-                }
-
                 val group = groupDao.getGroup(reminder.groupId).collectAsState(null).value
+                if (group != null ) {
 
-                if (group != null) {
-                    ReminderCard(
-                        type = reminderType,
-                        title = reminder.title,
-                        timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
-                        groupDisplay = group.title
-                    )
+                    val format: String = if(reminder.localDateTime.toLocalTime() == LocalTime.MIDNIGHT) {
+                        "d MMM"
+                    } else {
+                        "d MMM · h:mm a"
+                    }
+
+                    val reminderType = when (reminder) {
+                        is SingleTimeReminder -> "Single Time"
+                        is RecurringReminder -> "Recurring"
+                        is Habit -> "Habit"
+                        else -> "Unknown"
+                    }
+
+                    val passesSegmentFilter = when ( getSelectedSegmentText() ) {
+                        "All" -> true
+                        "Repeating" -> reminderType == "Habit" || reminderType == "Recurring"
+                        "Single Time" -> reminderType == "Single Time"
+                        else -> true
+                    }
+
+                    val chipDate = getSelectedChipDate()
+                    val passesChipDateFilter = chipDate?.let { reminder.localDateTime.toLocalDate() == getSelectedChipDate() } ?: true
+
+                    if(passesSegmentFilter && passesChipDateFilter) {
+                        ReminderCard(
+                            type = reminderType,
+                            title = reminder.title,
+                            timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
+                            groupDisplay = group.title
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
                 }
             }
 
@@ -370,11 +396,13 @@ fun ReminderCard(type: String, title: String, timeDisplay: String, groupDisplay:
 
 
 
-// Row of calendar filter chips
+// Row of calendar filter chips, shows the current date to 13 days after it for filtering
 @Composable
 private fun CalendarFilterChips() {
     val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.03f to Color.Red, 0.97f to Color.Red, 1f to Color.Transparent)
-    val selectedChipIndex = getSelectedChipIndex()
+    var selectedChipIndex by remember { mutableIntStateOf(-1) }
+
+    val currentDate = LocalDate.now()
 
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -390,13 +418,19 @@ private fun CalendarFilterChips() {
         items(14) { index ->
             val isSelected = index == selectedChipIndex
             val selectedIndex = if (isSelected) -1 else index
+
+            //Get date with index
+            val dateAddedWithIndex = currentDate.plusDays(index.toLong())
+
             VerticalChip(
                 isSelected = isSelected,
                 onClick = {
-                    setSelectedChipIndex(selectedIndex)
+                    selectedChipIndex = selectedIndex
+                    val chipDate = if (selectedIndex != -1) dateAddedWithIndex else null
+                    setSelectedChipDate(chipDate)
                 },
-                topText = "Thu",
-                bottomText = "${index + 1}"
+                topText = dateAddedWithIndex.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                bottomText = "${dateAddedWithIndex.dayOfMonth}"
             )
         }
 
@@ -451,7 +485,6 @@ private fun VerticalChip(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryFilterSegmented() {
-    var selectedIndex by remember { mutableIntStateOf(0) }
     val options = listOf("All", "Repeating", "Single Time")
     val icons = listOf(
         null,
@@ -467,11 +500,11 @@ fun CategoryFilterSegmented() {
         options.forEachIndexed { index, label ->
             SegmentedButton(
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                onClick = { selectedIndex = index },
-                selected = index == selectedIndex,
+                onClick = { setSelectedSegmentText(label) },
+                selected = label == getSelectedSegmentText(),
                 icon = {
                     SegmentedButtonDefaults.Icon(
-                        active = index == selectedIndex,
+                        active = label == getSelectedSegmentText(),
                         inactiveContent = {
                             icons[index]?.let {
                                 Icon(
@@ -792,7 +825,7 @@ fun CreateSingleTime() {
 
 @Composable
 fun CreateGroupSelector(setGroup: (Int) -> Unit) {
-    val groupList = groupDao.getAllGroups().collectAsState(initial = emptyList())
+    val groupList by groupDao.getAllGroups().collectAsState(initial = emptyList())
     val selectedGroupId = remember { mutableIntStateOf(-1) }
 
     Column {
@@ -802,7 +835,7 @@ fun CreateGroupSelector(setGroup: (Int) -> Unit) {
         )
 
         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(groupList.value) { group ->
+            items(groupList) { group ->
                 val isSelected = group.id == selectedGroupId.intValue
 
                 FilterChip(
@@ -1010,7 +1043,7 @@ fun CreateDatePickerDialog(
 
 // Time to string format
 private fun convertMillisToDate(millis: Long): String {
-    val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.US)
+    val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
     formatter.timeZone = TimeZone.getTimeZone("UTC") // Set the time zone to UTC
     return formatter.format(Date(millis))
 }

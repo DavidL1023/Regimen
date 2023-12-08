@@ -295,7 +295,6 @@ fun RemindersGroupTab() {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
         content = {
 
             item {
@@ -303,6 +302,8 @@ fun RemindersGroupTab() {
                 Column {
                     val isButtonClicked = toggleableTextButton()
                     ExpandableGroupList(isButtonClicked)
+
+                    Spacer(modifier = Modifier.height(14.dp))
                 }
             }
 
@@ -330,7 +331,7 @@ fun RemindersGroupTab() {
                         displayGroup = false
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
 
@@ -373,6 +374,8 @@ fun PagesGroupTab() {
                 Column {
                     val isButtonClicked = toggleableTextButton()
                     ExpandableGroupList(isButtonClicked)
+
+                    Spacer(modifier = Modifier.height(6.dp))
                 }
             }
 

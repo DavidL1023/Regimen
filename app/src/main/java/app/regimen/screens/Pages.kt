@@ -67,14 +67,24 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+// Used to sort by selection
+lateinit var setSelectedOptionText: (String) -> Unit
+lateinit var getSelectedOptionText: () -> String
+
 @Composable
 fun PagesScreen(
     onComposing: (DynamicScaffoldState) -> Unit
 ) {
+    // Selected dropdown option to sort by
+    var selectedOptionText by remember { mutableStateOf("Date edited") }
+
+    // Set functions to modify option to sort by
+    setSelectedOptionText = { selectedOptionText = it }
+    getSelectedOptionText = { selectedOptionText }
 
     // Used to hide on scroll
     val lazyStaggeredGridState = rememberLazyStaggeredGridState()
-    val hiddenOnScroll by remember(lazyStaggeredGridState) {
+    val staggeredListFirstVisible by remember(lazyStaggeredGridState) {
         derivedStateOf {
             lazyStaggeredGridState.firstVisibleItemIndex == 0
         }
@@ -93,7 +103,7 @@ fun PagesScreen(
                     )
                 }
             },
-            lazyStaggeredGridStateVisible = hiddenOnScroll,
+            lazyStaggeredGridStateVisible = staggeredListFirstVisible,
             bottomSheetBoxContent = { CreatePage() }
         )
     )
@@ -104,7 +114,7 @@ fun PagesScreen(
 
         // Search bar for pages
         AnimatedVisibility(
-            visible = hiddenOnScroll,
+            visible = staggeredListFirstVisible,
             enter = expandVertically(),
             exit = shrinkVertically()
         ) {
@@ -126,6 +136,13 @@ fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
     // Retrieve the list of groups from the DAO
     val pagesState by pageDao.getAllPages().collectAsState(initial = emptyList())
 
+    val sortedPages = when ( getSelectedOptionText() ) {
+        "Date edited" -> pagesState.sortedBy { it.dateTimeModified }
+        "Date created" -> pagesState.sortedBy { it.dateTimeCreated }
+        "Header" -> pagesState.sortedBy { it.title }
+        else -> pagesState
+    }
+
     LazyVerticalStaggeredGrid(
         state = lazyStaggeredGridState,
         columns = StaggeredGridCells.Fixed(2),
@@ -140,7 +157,7 @@ fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
                 Spacer(modifier = Modifier.height(0.5.dp))
             }
 
-            items(pagesState) { page ->
+            items(sortedPages) { page ->
                 val timeDisplay: String
                 val dateTimeModified = page.dateTimeModified
                 val currentTime = LocalDateTime.now()
@@ -178,7 +195,6 @@ fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
 fun SortExpandable() {
     val options = listOf("Date edited", "Date created", "Header")
     var expanded by remember { mutableStateOf(false) }
-    var selectedOptionText by remember { mutableStateOf(options[0]) }
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -189,7 +205,7 @@ fun SortExpandable() {
         OutlinedTextField(
             modifier = Modifier.menuAnchor(),
             readOnly = true,
-            value = selectedOptionText,
+            value = getSelectedOptionText(),
             onValueChange = {},
             label = { Text(text = "Sort by") },
             leadingIcon = {
@@ -214,7 +230,7 @@ fun SortExpandable() {
                 DropdownMenuItem(
                     text = { Text(text = selectionOption) },
                     onClick = {
-                        selectedOptionText = selectionOption
+                        setSelectedOptionText(selectionOption)
                         expanded = false
                     }
                 )
