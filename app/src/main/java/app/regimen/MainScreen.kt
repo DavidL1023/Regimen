@@ -653,16 +653,12 @@ fun Modifier.fadingEdge(brush: Brush) = this
 fun Modifier.clickableWithoutRipple(
     interactionSource: MutableInteractionSource,
     onClick: () -> Unit
-) = composed(
-    factory = {
-        this.then(
-            Modifier.clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = { onClick() }
-            )
-        )
-    }
+) = this.then(
+    Modifier.clickable(
+        interactionSource = interactionSource,
+        indication = null,
+        onClick = { onClick() }
+    )
 )
 
 // Format dates
