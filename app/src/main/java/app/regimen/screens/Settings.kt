@@ -75,6 +75,8 @@ fun SettingsScreen(
         )
         NotificationsButton()
 
+        Spacer(modifier = Modifier.padding(bottom = 6.dp))
+
         // Theme Selection Row
         ThemeSelectionRow()
         Text(
@@ -86,6 +88,8 @@ fun SettingsScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         ThemeSelectRadio()
+
+        Spacer(modifier = Modifier.padding(bottom = 6.dp))
 
         // Security Row
         SecurityRow()

@@ -87,9 +87,9 @@ data class Habit(
 data class Page(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val title: String,
-    val groupId: Int,
-    val body: String, //todo probably going to be different for rich text
-    val dateTimeModified: LocalDateTime,
+    var title: String,
+    var groupId: Int,
+    var body: String, //todo probably going to be different for rich text
+    var dateTimeModified: LocalDateTime,
     val dateTimeCreated: LocalDateTime
 )

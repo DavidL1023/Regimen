@@ -118,7 +118,6 @@ fun MainScreen(db: AppDatabase) {
 
     // Bottom sheet toggle
     var showBottomSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState()
 
     // Background focus dim
     var toggledFocusDim by remember { mutableStateOf(false) }
@@ -136,10 +135,7 @@ fun MainScreen(db: AppDatabase) {
             CustomTopAppBar(
                 title = dynamicScaffoldState.toolbarTitle,
                 subtitle = dynamicScaffoldState.toolbarSubtitle,
-                showDivider = currentDestination?.route in listOf(
-                    BottomBarScreen.Home.route,
-                    BottomBarScreen.Groups.route
-                ),
+                showDivider = true,
                 actions = {
                     dynamicScaffoldState.toolbarActions?.invoke(this)
                 }
@@ -147,10 +143,8 @@ fun MainScreen(db: AppDatabase) {
             )
         },
         floatingActionButton = {
-            // Bottom sheet for expanded fab clicks
-            if (dynamicScaffoldState.expandableFab) {
-                showBottomSheet = dynamicScaffoldState.fabBoxContextBottomSheetVisible
-            }
+            // Bottom sheet that shows content
+            showBottomSheet = dynamicScaffoldState.showBottomSheet
 
             if (currentDestination?.route != BottomBarScreen.Settings.route) {
                 AnimatedVisibility(
@@ -162,7 +156,7 @@ fun MainScreen(db: AppDatabase) {
                         expandable = dynamicScaffoldState.expandableFab,
                         onFabClick = {
                             if (dynamicScaffoldState.expandableFab) {
-                                toggledFocusDim = !toggledFocusDim
+                                toggledFocusDim = !toggledFocusDim // Show/hide a dismissible dim on extendable fab click
                             } else {
                                 showBottomSheet = true
                             }
@@ -180,20 +174,16 @@ fun MainScreen(db: AppDatabase) {
         }
     ) {
 
-        // Bottom Sheet for FabClick
         if (showBottomSheet) {
-            val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
-            val isKeyboardOpen by rememberUpdatedState(isImeVisible)
-
             ModalBottomSheet(
                 onDismissRequest = {
                     showBottomSheet = false
-                    if (dynamicScaffoldState.expandableFab) {
-                        dynamicScaffoldState.fabBoxContextDropdownDismissed()
-                    }
-                },
-                sheetState = sheetState
+                    dynamicScaffoldState.sheetDropdownDismissed()
+                }
             ) {
+                val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+                val isKeyboardOpen by rememberUpdatedState(isImeVisible)
+
                 // Sheet content
                 Column(modifier = Modifier.verticalScroll (rememberScrollState())){
                     Box(modifier = Modifier.fillMaxWidth()) {
@@ -281,7 +271,7 @@ fun CustomFloatingActionButton(
         isExpanded = false
     }
     // Close the expanded fab if clicked and bottom sheet appears
-    if (showBottomSheet == true) {
+    if (showBottomSheet) {
         isExpanded = false
         onFabBoxContentClick()
     }
@@ -625,9 +615,9 @@ data class DynamicScaffoldState(
     val expandableFab: Boolean = false,
     val lazyListStateVisible: Boolean? = null,
     val lazyStaggeredGridStateVisible: Boolean? = null,
-    val fabBoxContextDropdownDismissed: () -> Unit = {},
-    val fabBoxContextBottomSheetVisible: Boolean = false,
-    val bottomSheetBoxContent: (@Composable BoxScope.() -> Unit) = {}
+    val sheetDropdownDismissed: () -> Unit = {},
+    val bottomSheetBoxContent: (@Composable BoxScope.() -> Unit) = {},
+    val showBottomSheet: Boolean = false
 )
 
 // Fab button icon

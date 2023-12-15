@@ -71,6 +71,14 @@ import java.time.format.DateTimeFormatter
 lateinit var setSelectedOptionText: (String) -> Unit
 lateinit var getSelectedOptionText: () -> String
 
+// Boolean for sheet visibility
+lateinit var setSheetVisibilityPages: (Boolean) -> Unit
+
+// Used to edit the content displayed when bottom sheet is visible
+object SheetContentPages {
+    var sheetContent: @Composable () -> Unit = { CreatePage() }
+}
+
 @Composable
 fun PagesScreen(
     onComposing: (DynamicScaffoldState) -> Unit
@@ -81,6 +89,12 @@ fun PagesScreen(
     // Set functions to modify option to sort by
     setSelectedOptionText = { selectedOptionText = it }
     getSelectedOptionText = { selectedOptionText }
+
+    // Show sheet
+    var sheetVisibility by remember { mutableStateOf(false) }
+
+    // Set functions to modify show sheet
+    setSheetVisibilityPages = { sheetVisibility = it }
 
     // Used to hide on scroll
     val lazyStaggeredGridState = rememberLazyStaggeredGridState()
@@ -104,7 +118,14 @@ fun PagesScreen(
                 }
             },
             lazyStaggeredGridStateVisible = staggeredListFirstVisible,
-            bottomSheetBoxContent = { CreatePage() }
+            bottomSheetBoxContent = { SheetContentPages.sheetContent() },
+            showBottomSheet = sheetVisibility,
+            sheetDropdownDismissed = {
+                setSheetVisibilityPages(false)
+
+                //Set sheet content back to default empty state
+                SheetContentPages.sheetContent = { CreatePage() }
+            }
         )
     )
 
@@ -177,7 +198,17 @@ fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
                         header = page.title,
                         body = page.body,
                         timeDisplay = timeDisplay,
-                        groupDisplay = group.title
+                        groupDisplay = group.title,
+                        onClick = {
+                            SheetContentPages.sheetContent = {
+                                CreatePage(setTitle = page.title,
+                                    setDescription = page.body,
+                                    setGroupId = page.groupId,
+                                    updateMode = true
+                                )
+                            }
+                            setSheetVisibilityPages(true)
+                        }
                     )
                 }
             }
@@ -243,9 +274,10 @@ fun SortExpandable() {
 // A page card
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PageCard(header: String, body: String, timeDisplay: String, groupDisplay: String, displayGroup: Boolean = true) {
+fun PageCard(header: String, body: String, timeDisplay: String, groupDisplay: String,
+             displayGroup: Boolean = true,  onClick: () -> Unit) {
     Card(
-        onClick = { /* Do something */ },
+        onClick = { onClick() },
         modifier = Modifier
             .heightIn(min = 80.dp, max = 200.dp)
             .fillMaxWidth()
@@ -355,17 +387,19 @@ fun PageSearchBar() {
 
 // Fab click content
 @Composable
-fun CreatePage() {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var groupId by remember { mutableIntStateOf(-1) }
+fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: Int = -1,
+               updateMode: Boolean = false) {
+    var title by remember { mutableStateOf(setTitle) }
+    var description by remember { mutableStateOf(setDescription) }
+    var groupId by remember { mutableIntStateOf(setGroupId) }
 
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Explanation
-        CreateTopExplanation(header = "Create page", subtitle = "Keep pages for details and to store anything.")
+        CreateTopExplanation(header = if(updateMode) "Edit page" else "Create page",
+            subtitle = "Keep pages for details and to store anything.")
 
         // Title and description
         CreateTitleAndDescription(
@@ -376,7 +410,10 @@ fun CreatePage() {
         )
 
         // Group
-        CreateGroupSelector( setGroup = { groupId = it } )
+        CreateGroupSelector(
+            group = groupId,
+            setGroup = { groupId = it }
+        )
 
         // Save button
         Button(
@@ -384,19 +421,36 @@ fun CreatePage() {
             onClick = {
                 CoroutineScope(Dispatchers.IO).launch {
                     val currentTime = LocalDateTime.now()
-                    pageDao.insert(
-                        Page(
-                            title = title,
-                            groupId = groupId,
-                            body = description,
-                            dateTimeModified = currentTime,
-                            dateTimeCreated = currentTime)
-                    )
+                    if (updateMode) {
+                        pageDao.getPage(groupId).collect { page ->
+                            page.title = title
+                            page.groupId = groupId
+                            page.body = description
+                            page.dateTimeModified = currentTime
+                            // We don't edit dateTimeCreated
+
+                            pageDao.update(page)
+                        }
+                    } else {
+                        pageDao.insert(
+                            Page(
+                                title = title,
+                                groupId = groupId,
+                                body = description,
+                                dateTimeModified = currentTime,
+                                dateTimeCreated = currentTime
+                            )
+                        )
+                    }
+
                 }
+                // Dismiss the sheet after checks
+                setSheetVisibilityPages(false)
+
             }
         ) {
             Text(
-                text = "Save",
+                text = if(updateMode) "Save" else "Create",
             )
         }
 
@@ -404,3 +458,4 @@ fun CreatePage() {
 
     }
 }
+

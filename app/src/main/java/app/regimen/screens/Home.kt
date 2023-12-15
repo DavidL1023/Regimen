@@ -36,6 +36,7 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
@@ -122,20 +123,30 @@ import java.util.TimeZone
 lateinit var setSelectedChipDate: (LocalDate?) -> Unit
 lateinit var getSelectedChipDate: () -> LocalDate?
 
+lateinit var setSelectedChipIndex: (Int) -> Unit
+lateinit var getSelectedChipIndex: () -> Int
+
 // Used to filter by types
 lateinit var setSelectedSegmentText: (String) -> Unit
 lateinit var getSelectedSegmentText: () -> String
+
+// Boolean for sheet visibility
+lateinit var setSheetVisibilityHome: (Boolean) -> Unit
 
 @Composable
 fun HomeScreen(
     onComposing: (DynamicScaffoldState) -> Unit
 ) {
-    // The selected date to filter by
+    // The selected date / index to filter by
     var selectedChipDate by remember { mutableStateOf<LocalDate?>(null) }
+    var selectedChipIndex by remember { mutableIntStateOf(-1) }
 
-    // Set the functions to manipulate selectedChipIndex
+    // Set the functions to manipulate selectedChipIndex and date
     setSelectedChipDate = { selectedChipDate = it }
     getSelectedChipDate = { selectedChipDate }
+
+    setSelectedChipIndex = { selectedChipIndex = it }
+    getSelectedChipIndex = { selectedChipIndex }
 
     // Selected segment to filter by
     var selectedSegmentText by remember { mutableStateOf("All") }
@@ -143,6 +154,12 @@ fun HomeScreen(
     // Set the functions to manipulate selected segment
     setSelectedSegmentText = { selectedSegmentText = it }
     getSelectedSegmentText = { selectedSegmentText }
+
+    // Show sheet
+    var sheetVisibility by remember { mutableStateOf(false) }
+
+    // Set functions to modify show sheet
+    setSheetVisibilityHome = { sheetVisibility = it }
 
     // Used to hide on scroll
     val lazyListState = rememberLazyListState()
@@ -153,8 +170,7 @@ fun HomeScreen(
     }
 
     // Bottom sheet toggle and item clicked
-    var showBottomSheet by remember { mutableStateOf(false) }
-    var fabBoxItemClicked by remember { mutableStateOf("") }
+    var fabBoxItemClicked by remember { mutableStateOf("Habit") }
 
     // Dynamic toolbar
     onComposing(
@@ -172,21 +188,21 @@ fun HomeScreen(
             fabBoxContent = { isExpanded ->
                 HomeScreenFabBox(
                     isExpanded = isExpanded,
-                    onFabItemClick = { showBottomSheet = !showBottomSheet },
+                    onFabItemClick = { setSheetVisibilityHome(true) },
                     callback = { index -> fabBoxItemClicked = index }
                 )
             },
             expandableFab = true,
             lazyListStateVisible = listFirstVisible,
-            fabBoxContextBottomSheetVisible = showBottomSheet,
-            fabBoxContextDropdownDismissed = { showBottomSheet = !showBottomSheet },
+            sheetDropdownDismissed = { setSheetVisibilityHome(false) },
             bottomSheetBoxContent = {
                 when (fabBoxItemClicked) {
                     "Habit" -> CreateHabit()
                     "Recurring" -> CreateRecurring()
                     "Single Time" -> CreateSingleTime()
                 }
-            }
+            },
+            showBottomSheet = sheetVisibility,
         )
     )
 
@@ -238,7 +254,7 @@ fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit, callback: 
         )
 
         RemindMeRow(
-            icon = Icons.Filled.CalendarMonth,
+            icon = Icons.Filled.Today,
             text = "Single Time",
             isExpanded = isExpanded,
             onClick = {
@@ -266,8 +282,9 @@ fun LazyReminderColumn(lazyListState: LazyListState) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         content = {
+
             item {
-                Spacer(modifier = Modifier.height(0.5.dp))
+                Spacer(modifier = Modifier.height(1.dp))
             }
 
             items(sortedReminders) { reminder ->
@@ -302,7 +319,8 @@ fun LazyReminderColumn(lazyListState: LazyListState) {
                             type = reminderType,
                             title = reminder.title,
                             timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
-                            groupDisplay = group.title
+                            groupDisplay = group.title,
+                            onClick = { setSheetVisibilityHome(true) }
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -320,10 +338,11 @@ fun LazyReminderColumn(lazyListState: LazyListState) {
 
 // A reminder card
 @Composable
-fun ReminderCard(type: String, title: String, timeDisplay: String, groupDisplay: String, displayGroup: Boolean = true) {
+fun ReminderCard(type: String, title: String, timeDisplay: String, groupDisplay: String,
+                 displayGroup: Boolean = true, onClick: () -> Unit) {
 
     Card(
-        onClick = { /* Do something */ },
+        onClick = { onClick() },
         modifier = Modifier
             .heightIn(min = 110.dp, max = 150.dp)
             .fillMaxWidth()
@@ -400,8 +419,6 @@ fun ReminderCard(type: String, title: String, timeDisplay: String, groupDisplay:
 @Composable
 private fun CalendarFilterChips() {
     val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.03f to Color.Red, 0.97f to Color.Red, 1f to Color.Transparent)
-    var selectedChipIndex by remember { mutableIntStateOf(-1) }
-
     val currentDate = LocalDate.now()
 
     LazyRow(
@@ -416,7 +433,7 @@ private fun CalendarFilterChips() {
         }
 
         items(14) { index ->
-            val isSelected = index == selectedChipIndex
+            val isSelected = index == getSelectedChipIndex()
             val selectedIndex = if (isSelected) -1 else index
 
             //Get date with index
@@ -425,7 +442,7 @@ private fun CalendarFilterChips() {
             VerticalChip(
                 isSelected = isSelected,
                 onClick = {
-                    selectedChipIndex = selectedIndex
+                    setSelectedChipIndex(selectedIndex)
                     val chipDate = if (selectedIndex != -1) dateAddedWithIndex else null
                     setSelectedChipDate(chipDate)
                 },
@@ -604,7 +621,10 @@ fun CreateHabit() {
         )
 
         // Select group
-        CreateGroupSelector( setGroup = { groupId = it } )
+        CreateGroupSelector(
+            group = groupId,
+            setGroup = { groupId = it }
+        )
 
         // Save button
         Button(
@@ -704,7 +724,10 @@ fun CreateRecurring() {
         )
 
         // Select group
-        CreateGroupSelector( setGroup = { groupId = it } )
+        CreateGroupSelector(
+            group = groupId,
+            setGroup = { groupId = it }
+        )
 
         // Save button
         Button(
@@ -789,7 +812,10 @@ fun CreateSingleTime() {
         }
 
         // Select group
-        CreateGroupSelector( setGroup = { groupId = it } )
+        CreateGroupSelector(
+            group = groupId,
+            setGroup = { groupId = it }
+        )
 
         // Save button
         Button(
@@ -824,9 +850,8 @@ fun CreateSingleTime() {
 }
 
 @Composable
-fun CreateGroupSelector(setGroup: (Int) -> Unit) {
+fun CreateGroupSelector(group: Int, setGroup: (Int) -> Unit) {
     val groupList by groupDao.getAllGroups().collectAsState(initial = emptyList())
-    val selectedGroupId = remember { mutableIntStateOf(-1) }
 
     Column {
         Text(
@@ -835,16 +860,15 @@ fun CreateGroupSelector(setGroup: (Int) -> Unit) {
         )
 
         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(groupList) { group ->
-                val isSelected = group.id == selectedGroupId.intValue
+            items(groupList) { groupFromList ->
+                val isSelected = groupFromList.id == group
 
                 FilterChip(
                     selected = isSelected,
                     onClick = {
-                        selectedGroupId.intValue = group.id
-                        setGroup(selectedGroupId.intValue)
+                        setGroup(groupFromList.id)
                     },
-                    label = { Text(group.title) },
+                    label = { Text(groupFromList.title) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Filled.Favorite,

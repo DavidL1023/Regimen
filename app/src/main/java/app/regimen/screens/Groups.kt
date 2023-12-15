@@ -97,6 +97,9 @@ lateinit var getSelectedGroupId: () -> Int
 lateinit var setListFirstVisible: (Boolean) -> Unit
 lateinit var setStaggeredListFirstVisible: (Boolean) -> Unit
 
+// Boolean for sheet visibility
+lateinit var setSheetVisibilityGroups: (Boolean) -> Unit
+
 @Composable
 fun GroupsScreen(
     onComposing: (DynamicScaffoldState) -> Unit
@@ -116,6 +119,12 @@ fun GroupsScreen(
     setListFirstVisible = { listFirstVisible = it }
     setStaggeredListFirstVisible = { staggeredListFirstVisible = it }
 
+    // Show sheet
+    var sheetVisibility by remember { mutableStateOf(false) }
+
+    // Set functions to modify show sheet
+    setSheetVisibilityGroups = { sheetVisibility = it }
+
     // Dynamic toolbar
     onComposing(
         DynamicScaffoldState(
@@ -131,7 +140,9 @@ fun GroupsScreen(
             },
             lazyListStateVisible = listFirstVisible,
             lazyStaggeredGridStateVisible = staggeredListFirstVisible,
-            bottomSheetBoxContent = { CreateGroup() }
+            bottomSheetBoxContent = { CreateGroup() },
+            showBottomSheet = sheetVisibility,
+            sheetDropdownDismissed = { setSheetVisibilityGroups(false) }
         )
     )
 
@@ -243,10 +254,7 @@ fun toggleableTextButton(): Boolean {
     TextButton(
         modifier = Modifier
             .padding(start = 12.dp),
-        onClick = {
-            isClicked = !isClicked
-
-        }
+        onClick = { isClicked = !isClicked }
     ) {
         Icon(
             imageVector = Icons.Default.FilterList,
@@ -328,7 +336,8 @@ fun RemindersGroupTab() {
                         title = reminder.title,
                         timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
                         groupDisplay = "",
-                        displayGroup = false
+                        displayGroup = false,
+                        onClick = { setSheetVisibilityGroups(true) }
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -399,7 +408,8 @@ fun PagesGroupTab() {
                         body = page.body,
                         timeDisplay = timeDisplay,
                         groupDisplay = "",
-                        displayGroup = false
+                        displayGroup = false,
+                        onClick = { setSheetVisibilityGroups(true) }
                     )
                 }
             }
