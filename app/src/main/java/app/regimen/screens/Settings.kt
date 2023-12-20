@@ -89,20 +89,6 @@ fun SettingsScreen(
         )
         ThemeSelectRadio()
 
-        Spacer(modifier = Modifier.padding(bottom = 6.dp))
-
-        // Security Row
-        SecurityRow()
-        Text(
-            text = "Choose how you want to secure your app.",
-            style = MaterialTheme.typography.titleSmall.copy(
-                fontWeight = FontWeight.Normal
-            ),
-            modifier = Modifier.padding(start = 16.dp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        val passwordButtonEnabled = passwordSwitch()
-        SetPasswordButton(passwordButtonEnabled)
     }
 }
 
@@ -144,90 +130,6 @@ fun ThemeSelectionRow() {
         )
     }
 }
-
-// Text and icon row for security
-@Composable
-fun SecurityRow() {
-    Row(
-        modifier = Modifier.padding(start = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Default.Security,
-            contentDescription = null
-        )
-
-        Text(
-            text = "Security",
-            style = MaterialTheme.typography.titleMedium
-        )
-    }
-}
-
-
-// Button to set password
-@Composable
-fun SetPasswordButton(enabled: Boolean) {
-    Button(
-        onClick = {  },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        enabled = enabled
-    ) {
-        Icon(
-            Icons.Filled.Password,
-            contentDescription = null,
-            modifier = Modifier.size(ButtonDefaults.IconSize)
-        )
-        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-        Text(
-            text = "Set Passcode",
-        )
-    }
-}
-
-// Switch to enable password
-@Composable
-fun passwordSwitch(): Boolean {
-    var passcodeChecked by remember { mutableStateOf(false) }
-    val dataStoreSingleton = AppModule.providePreferenceDataStore(LocalContext.current)
-
-    LaunchedEffect(Unit) {
-        CoroutineScope(Dispatchers.IO).launch {
-            dataStoreSingleton.getPasscodeSwitch().collect {
-                passcodeChecked = it
-            }
-        }
-    }
-
-    Row(
-        Modifier
-            .fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    )  {
-        Text(
-            text = "Enable Passcode",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(start = 16.dp)
-        )
-
-        Spacer(modifier = Modifier.weight(1f)) // Keep switch on the right side of screen
-
-        Switch(
-            checked = passcodeChecked,
-            onCheckedChange = { isChecked ->
-                CoroutineScope(Dispatchers.IO).launch {
-                    dataStoreSingleton.setPasscodeSwitch(isChecked)
-                }
-            },
-            modifier = Modifier.padding(end = 16.dp)
-        )
-    }
-
-    return passcodeChecked
-}
-
 
 // Radio selection for theme mode
 @Composable

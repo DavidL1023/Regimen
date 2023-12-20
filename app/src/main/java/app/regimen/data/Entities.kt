@@ -9,10 +9,10 @@ import java.time.LocalDateTime
 data class Group(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val title: String,
-    val description: String,
-    val color: Int, //Color is assigned as integer to be decoded later
-    val icon: Int //Same with icon
+    var title: String,
+    var description: String,
+    var color: Int, //Color is assigned as integer to be decoded later
+    var icon: Int //Same with icon
 )
 
 interface Reminder {
@@ -21,9 +21,6 @@ interface Reminder {
     val specificTimeEnabled: Boolean
     val localDateTime: LocalDateTime
     val description: String
-    val customProgressActive: Float
-    val customProgressGoal: Float
-    val customUnit: String
 }
 
 @Entity(tableName = "single time reminders")
@@ -31,14 +28,11 @@ data class SingleTimeReminder(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
 
-    override val title: String,
-    override val groupId: Int,
-    override val specificTimeEnabled: Boolean,
-    override val localDateTime: LocalDateTime,
-    override val description: String,
-    override val customProgressActive: Float,
-    override val customProgressGoal: Float,
-    override val customUnit: String
+    override var title: String,
+    override var groupId: Int,
+    override var specificTimeEnabled: Boolean,
+    override var localDateTime: LocalDateTime,
+    override var description: String
 ) : Reminder
 
 @Entity(tableName = "recurring reminders")
@@ -46,19 +40,15 @@ data class RecurringReminder(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
 
-    override val title: String,
-    override val groupId: Int,
-    override val specificTimeEnabled: Boolean,
-    override val localDateTime: LocalDateTime,
-    override val description: String,
-    override val customProgressActive: Float,
-    override val customProgressGoal: Float,
-    override val customUnit: String,
+    override var title: String,
+    override var groupId: Int,
+    override var specificTimeEnabled: Boolean,
+    override var localDateTime: LocalDateTime,
+    override var description: String,
 
-    val customPeriodEnabled: Boolean,
-    val recurringPeriod: Int,
-    val recurringDay: String,
-    val paused: Boolean
+    var customPeriodEnabled: Boolean,
+    var recurringPeriod: Int,
+    var recurringDay: String,
 ) : Reminder
 
 @Entity(tableName = "habits")
@@ -66,21 +56,17 @@ data class Habit(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
 
-    override val title: String,
-    override val groupId: Int,
-    override val specificTimeEnabled: Boolean,
-    override val localDateTime: LocalDateTime,
-    override val description: String,
-    override val customProgressActive: Float,
-    override val customProgressGoal: Float,
-    override val customUnit: String,
+    override var title: String,
+    override var groupId: Int,
+    override var specificTimeEnabled: Boolean,
+    override var localDateTime: LocalDateTime,
+    override var description: String,
 
-    val customPeriodEnabled: Boolean,
-    val recurringPeriod: Int,
-    val recurringDay: String,
-    val paused: Boolean,
-    val streakActive: Int,
-    val streakHighest: Int
+    var customPeriodEnabled: Boolean,
+    var recurringPeriod: Int,
+    var recurringDay: String,
+    var streakActive: Int,
+    var streakHighest: Int
 ) : Reminder
 
 @Entity(tableName = "pages")
@@ -89,7 +75,7 @@ data class Page(
     val id: Int = 0,
     var title: String,
     var groupId: Int,
-    var body: String, //todo probably going to be different for rich text
+    var body: String,
     var dateTimeModified: LocalDateTime,
     val dateTimeCreated: LocalDateTime
 )

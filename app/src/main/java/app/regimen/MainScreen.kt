@@ -143,9 +143,6 @@ fun MainScreen(db: AppDatabase) {
             )
         },
         floatingActionButton = {
-            // Bottom sheet that shows content
-            showBottomSheet = dynamicScaffoldState.showBottomSheet
-
             if (currentDestination?.route != BottomBarScreen.Settings.route) {
                 AnimatedVisibility(
                     visible = dynamicScaffoldState.lazyListStateVisible == true || dynamicScaffoldState.lazyStaggeredGridStateVisible == true,
@@ -158,7 +155,7 @@ fun MainScreen(db: AppDatabase) {
                             if (dynamicScaffoldState.expandableFab) {
                                 toggledFocusDim = !toggledFocusDim // Show/hide a dismissible dim on extendable fab click
                             } else {
-                                showBottomSheet = true
+                                dynamicScaffoldState.showBottomSheetFabClicked()
                             }
                         },
                         fabIcon = getFabIconForDestination(currentDestination),
@@ -173,13 +170,12 @@ fun MainScreen(db: AppDatabase) {
             }
         }
     ) {
+        // Show bottom sheet controlled by screens
+        showBottomSheet = dynamicScaffoldState.showBottomSheet
 
         if (showBottomSheet) {
             ModalBottomSheet(
-                onDismissRequest = {
-                    showBottomSheet = false
-                    dynamicScaffoldState.sheetDropdownDismissed()
-                }
+                onDismissRequest = { dynamicScaffoldState.sheetDropdownDismissed() }
             ) {
                 val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
                 val isKeyboardOpen by rememberUpdatedState(isImeVisible)
@@ -195,6 +191,8 @@ fun MainScreen(db: AppDatabase) {
                     }
                 }
             }
+        } else {
+            dynamicScaffoldState.sheetDropdownDismissed()
         }
 
         // MAIN NAV HOST
@@ -617,7 +615,8 @@ data class DynamicScaffoldState(
     val lazyStaggeredGridStateVisible: Boolean? = null,
     val sheetDropdownDismissed: () -> Unit = {},
     val bottomSheetBoxContent: (@Composable BoxScope.() -> Unit) = {},
-    val showBottomSheet: Boolean = false
+    val showBottomSheet: Boolean = false,
+    val showBottomSheetFabClicked: () -> Unit = {}
 )
 
 // Fab button icon

@@ -8,11 +8,14 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,12 +24,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
@@ -70,11 +71,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.regimen.DynamicScaffoldState
-import app.regimen.data.AppDatabase
 import app.regimen.data.Group
-import app.regimen.data.GroupDao
 import app.regimen.data.Habit
+import app.regimen.data.Page
 import app.regimen.data.RecurringReminder
+import app.regimen.data.Reminder
 import app.regimen.data.SingleTimeReminder
 import app.regimen.fadingEdge
 import app.regimen.formatLocalDateTime
@@ -88,6 +89,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 // Used to filter by group
 lateinit var setSelectedGroupId: (Int) -> Unit
@@ -99,6 +101,11 @@ lateinit var setStaggeredListFirstVisible: (Boolean) -> Unit
 
 // Boolean for sheet visibility
 lateinit var setSheetVisibilityGroups: (Boolean) -> Unit
+
+// Used to edit the content displayed when bottom sheet is visible
+object SheetContentGroups {
+    var sheetContent: @Composable () -> Unit = { CreateGroup() }
+}
 
 @Composable
 fun GroupsScreen(
@@ -140,16 +147,20 @@ fun GroupsScreen(
             },
             lazyListStateVisible = listFirstVisible,
             lazyStaggeredGridStateVisible = staggeredListFirstVisible,
-            bottomSheetBoxContent = { CreateGroup() },
+            bottomSheetBoxContent = { SheetContentGroups.sheetContent() },
             showBottomSheet = sheetVisibility,
-            sheetDropdownDismissed = { setSheetVisibilityGroups(false) }
+            sheetDropdownDismissed = { setSheetVisibilityGroups(false) },
+            showBottomSheetFabClicked = {
+                SheetContentGroups.sheetContent = { CreateGroup() }
+                sheetVisibility = true
+            }
         )
     )
 
     // Groups column
     Column {
 
-        // Tab selector (includes group list)
+        // Tab selector (includes group row)
         GroupTabs()
 
     }
@@ -302,53 +313,73 @@ fun RemindersGroupTab() {
         state = lazyListState,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        content = {
+            .padding(horizontal = 16.dp)
+    ){
 
-            item {
-                // Display group list
-                Column {
-                    val isButtonClicked = toggleableTextButton()
-                    ExpandableGroupList(isButtonClicked)
+        item {
+            // Display group list
+            Column {
+                val isButtonClicked = toggleableTextButton()
+                ExpandableGroupList(isButtonClicked)
 
-                    Spacer(modifier = Modifier.height(14.dp))
-                }
-            }
-
-            items(sortedReminders) { reminder ->
-                if (reminder.groupId == selectedGroupId) { // Only show if contains selected group
-                    val format: String =
-                        if (reminder.localDateTime.toLocalTime() == LocalTime.MIDNIGHT) {
-                            "d MMM"
-                        } else {
-                            "d MMM · h:mm a"
-                        }
-
-                    val reminderType = when (reminder) {
-                        is SingleTimeReminder -> "Single Time"
-                        is RecurringReminder -> "Recurring"
-                        is Habit -> "Habit"
-                        else -> "Unknown"
-                    }
-
-                    ReminderCard(
-                        type = reminderType,
-                        title = reminder.title,
-                        timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
-                        groupDisplay = "",
-                        displayGroup = false,
-                        onClick = { setSheetVisibilityGroups(true) }
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
             }
         }
-    )
+
+        items(sortedReminders) { reminder ->
+            if (reminder.groupId == selectedGroupId) { // Only show if contains selected group
+                val format: String =
+                    if (reminder.localDateTime.toLocalTime() == LocalTime.MIDNIGHT) {
+                        "d MMM"
+                    } else {
+                        "d MMM · h:mm a"
+                    }
+
+                val reminderType = when (reminder) {
+                    is SingleTimeReminder -> "Single Time"
+                    is RecurringReminder -> "Recurring"
+                    is Habit -> "Habit"
+                    else -> "Unknown"
+                }
+
+                val group = groupDao.getGroup(reminder.groupId).collectAsState(null).value
+
+                ReminderCard(
+                    type = reminderType,
+                    title = reminder.title,
+                    timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
+                    groupDisplay = "",
+                    displayGroup = false,
+                    onClick = {
+                        if (group != null) {
+                            reminderOnClickViewGroup(reminder, group)
+                        }
+                    },
+                    onLongPress = {
+                        when (reminder) {
+                            is Habit -> {
+                                habitOnClickEditGroup(reminder)
+                            }
+
+                            is RecurringReminder -> {
+                                recurringOnClickEditGroup(reminder)
+                            }
+
+                            is SingleTimeReminder -> {
+                                singleTimeOnClickEditGroup(reminder)
+                            }
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
 }
 
 // Tab content for pages
@@ -375,55 +406,63 @@ fun PagesGroupTab() {
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalItemSpacing = 8.dp,
-        content = {
+        verticalItemSpacing = 8.dp
+    ) {
 
-            item(span = StaggeredGridItemSpan.FullLine) {
-                // Display group list
-                Column {
-                    val isButtonClicked = toggleableTextButton()
-                    ExpandableGroupList(isButtonClicked)
+        item(span = StaggeredGridItemSpan.FullLine) {
+            // Display group list
+            Column {
+                val isButtonClicked = toggleableTextButton()
+                ExpandableGroupList(isButtonClicked)
 
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
-            }
-
-            items(sortedPages) { page ->
-                if (page.groupId == selectedGroupId) { // Only show if contains selected group
-                    val timeDisplay: String
-                    val dateTimeModified = page.dateTimeModified
-                    val currentTime = LocalDateTime.now()
-
-                    timeDisplay =
-                        if (dateTimeModified.toLocalDate() == currentTime.toLocalDate()) { // Same day
-                            formatLocalDateTime(dateTimeModified, "'Today at' h:mm a")
-                        } else if (dateTimeModified.year != currentTime.year) { // Different year
-                            formatLocalDateTime(dateTimeModified, "MMM dd, yyyy")
-                        } else { // Same year different day
-                            formatLocalDateTime(dateTimeModified, "EEEE, MMM dd")
-                        }
-
-                    PageCard(
-                        header = page.title,
-                        body = page.body,
-                        timeDisplay = timeDisplay,
-                        groupDisplay = "",
-                        displayGroup = false,
-                        onClick = { setSheetVisibilityGroups(true) }
-                    )
-                }
-            }
-
-            item(span = StaggeredGridItemSpan.FullLine) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(6.dp))
             }
         }
-    )
+
+        items(sortedPages) { page ->
+            if (page.groupId == selectedGroupId) { // Only show if contains selected group
+                val timeDisplay: String
+                val dateTimeModified = page.dateTimeModified
+                val currentTime = LocalDateTime.now()
+
+                timeDisplay =
+                    if (dateTimeModified.toLocalDate() == currentTime.toLocalDate()) { // Same day
+                        formatLocalDateTime(dateTimeModified, "'Today at' h:mm a")
+                    } else if (dateTimeModified.year != currentTime.year) { // Different year
+                        formatLocalDateTime(dateTimeModified, "MMM dd, yyyy")
+                    } else { // Same year different day
+                        formatLocalDateTime(dateTimeModified, "EEEE, MMM dd")
+                    }
+
+                val group = groupDao.getGroup(page.groupId).collectAsState(null).value
+
+                PageCard(
+                    header = page.title,
+                    body = page.body,
+                    timeDisplay = timeDisplay,
+                    groupDisplay = "",
+                    displayGroup = false,
+                    onClick = {
+                        if (group != null) {
+                            pageOnClickViewGroup(page, group)
+                        }
+                    },
+                    onLongPress = { pageOnClickEditGroup(page) }
+                )
+            }
+        }
+
+        item(span = StaggeredGridItemSpan.FullLine) {
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+
 }
 
 // Item for horizontal list of group selection
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
+fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit, onLongPress: () -> Unit) {
 
     val textStyle = if (selected) {
         MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
@@ -435,10 +474,13 @@ fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit) {
         modifier = Modifier
             .size(animateDpAsState(if (selected) 130.dp else 120.dp).value)
             .clip(RoundedCornerShape(16.dp)) // allows ripple to match shape
-            .clickable { onSelectedChange() }
             .background(
                 color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
                 shape = RoundedCornerShape(16.dp)
+            )
+            .combinedClickable(
+                onClick = { onSelectedChange() },
+                onLongClick = { onLongPress() }
             )
     ) {
         Icon(
@@ -493,6 +535,15 @@ fun ExpandableGroupList(isVisible: Boolean) {
                     if (isVisible) {
                         setSelectedGroupId( if (isSelected) -1 else group.id )
                     }
+                },
+                onLongPress = {
+                    SheetContentGroups.sheetContent = {
+                        CreateGroup(setTitle = group.title, setDescription = group.description,
+                            setColor = group.color, setIcon = group.icon, updateMode = true,
+                            updateModeId = group.id)
+                    }
+
+                    setSheetVisibilityGroups(true)
                 }
             )
         }
@@ -502,21 +553,24 @@ fun ExpandableGroupList(isVisible: Boolean) {
         }
 
     }
+
 }
 
 // Fab click content
 @Composable
-fun CreateGroup() {
+fun CreateGroup(setTitle: String = "", setDescription: String = "", setColor: Int = 0,
+                setIcon: Int = 0, updateMode: Boolean = false, updateModeId: Int = -1) {
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        var title by remember { mutableStateOf("") }
-        var description by remember { mutableStateOf("") }
-        var color by remember { mutableIntStateOf(0)}
+        var title by remember { mutableStateOf(setTitle) }
+        var description by remember { mutableStateOf(setDescription) }
+        var color by remember { mutableIntStateOf(setColor)}
 
         // Explanation
-        CreateTopExplanation(header = "Create group", subtitle = "Groups are to organize your reminders and pages in one location.")
+        CreateTopExplanation(header = if(updateMode) "Edit group" else "Create group",
+            subtitle = "Groups are to organize your reminders and pages in one location.")
 
         // Title and description
         CreateTitleAndDescription(
@@ -527,26 +581,65 @@ fun CreateGroup() {
         )
 
         // Color picker
-        ColorPicker( setColor = { color = it } )
+        ColorPicker( color = color, setColor = { color = it } )
 
         // Save button
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 CoroutineScope(Dispatchers.IO).launch {
-                    groupDao.insert(
-                        Group(
-                            title=title,
-                            description=description,
-                            color=color,
-                            icon=0)
-                    )
+                    if (updateMode) {
+                        groupDao.getGroup(updateModeId).collect { group ->
+                            group.title = title
+                            group.description = description
+                            group.color = color
+                            group.icon = 0
+
+                            groupDao.update(group)
+                        }
+                    } else {
+                        groupDao.insert(
+                            Group(
+                                title = title,
+                                description = description,
+                                color = color,
+                                icon = 0
+                            )
+                        )
+                    }
+
                 }
+                setSheetVisibilityGroups(false)
             }
         ) {
             Text(
-                text = "Save"
+                text = if(updateMode) "Save" else "Create"
             )
+        }
+
+        // Delete button
+        if (updateMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Button(
+                    modifier = Modifier.width(200.dp),
+                    onClick = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            groupDao.getGroup(updateModeId).collect { group ->
+                                groupDao.delete(group)
+                            }
+                        }
+                        // TODO delete all associated pages and reminders
+                        setSheetVisibilityGroups(false)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(text = "Delete")
+                }
+            }
         }
 
         Spacer(modifier = Modifier.padding(vertical = 12.dp))
@@ -578,8 +671,7 @@ enum class CustomColor(val color: Color, val intValue: Int) { //TODO move this a
 }
 
 @Composable
-fun ColorPicker(setColor: (Int) -> Unit) {
-    var selectedColor by remember { mutableStateOf(CustomColor.Red) }
+fun ColorPicker(color: Int, setColor: (Int) -> Unit) {
 
     Column {
         Text(
@@ -589,26 +681,150 @@ fun ColorPicker(setColor: (Int) -> Unit) {
         )
 
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            itemsIndexed(CustomColor.values()) { index, customColor ->
-                val composeColor = customColor.toComposeColor()
-                val isSelected = selectedColor == customColor
-                val alpha = animateFloatAsState(if (isSelected) 1f else 0.5f).value
-                val roundedShape = animateDpAsState(if (isSelected) 20.dp else 10.dp).value
+            items(CustomColor.values()) {customColor ->
+                val isSelected = color == customColor.intValue
+                val alpha = animateFloatAsState(if (isSelected) 1f else 0.4f).value
+                val roundedShape = animateDpAsState(if (isSelected) 50.dp else 10.dp).value
 
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(roundedShape))
                         .size(50.dp)
                         .background(
-                            color = composeColor.copy(alpha = alpha),
+                            color = customColor.toComposeColor().copy(alpha = alpha),
                             shape = RoundedCornerShape(roundedShape)
                         )
                         .clickable {
-                            selectedColor = customColor
                             setColor(customColor.intValue)
                         }
                 )
             }
         }
     }
+}
+
+fun reminderOnClickViewGroup(reminder: Reminder, group: Group) {
+    val type: String = when (reminder) {
+        is Habit -> { "Habit" }
+
+        is RecurringReminder -> { "Recurring" }
+
+        is SingleTimeReminder -> { "Single Time" }
+
+        else -> {"Unknown"}
+    }
+
+    SheetContentHome.sheetContent = {
+        ViewReminder(
+            type = type,
+            title = reminder.title,
+            description = reminder.description,
+            localDateTime = reminder.localDateTime,
+            groupTitle = group.title
+        )
+    }
+
+    setSheetVisibilityHome(true)
+}
+
+fun habitOnClickEditGroup(habit: Habit) {
+    val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+    val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
+
+    val date = habit.localDateTime.format(dateFormatter)
+    val time = habit.localDateTime.format(timeFormatter)
+
+    SheetContentGroups.sheetContent = {
+        CreateHabit(
+            setTitle = habit.title,
+            setDescription = habit.description,
+            setDate = date,
+            setTime = time,
+            setGroupId = habit.groupId,
+            setSpecificTimeEnabled = habit.specificTimeEnabled,
+            setCustomPeriodEnabled = habit.customPeriodEnabled,
+            setRecurringPeriod = habit.recurringPeriod.toString(),
+            setRecurringDay = habit.recurringDay,
+            updateMode = true,
+            updateModeId = habit.id
+        )
+    }
+
+    setSheetVisibilityGroups(true)
+}
+
+fun recurringOnClickEditGroup(recurringReminder: RecurringReminder) {
+    val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+    val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
+
+    val date = recurringReminder.localDateTime.format(dateFormatter)
+    val time = recurringReminder.localDateTime.format(timeFormatter)
+
+    SheetContentGroups.sheetContent = {
+        CreateRecurring(
+            setTitle = recurringReminder.title,
+            setDescription = recurringReminder.description,
+            setDate = date,
+            setTime = time,
+            setGroupId = recurringReminder.groupId,
+            setSpecificTimeEnabled = recurringReminder.specificTimeEnabled,
+            setCustomPeriodEnabled = recurringReminder.customPeriodEnabled,
+            setRecurringPeriod = recurringReminder.recurringPeriod.toString(),
+            setRecurringDay = recurringReminder.recurringDay,
+            updateMode = true,
+            updateModeId = recurringReminder.id
+        )
+    }
+
+    setSheetVisibilityGroups(true)
+}
+
+fun singleTimeOnClickEditGroup(singleTimeReminder: SingleTimeReminder) {
+    val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+    val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
+
+    val date = singleTimeReminder.localDateTime.format(dateFormatter)
+    val time = singleTimeReminder.localDateTime.format(timeFormatter)
+
+    SheetContentGroups.sheetContent = {
+        CreateSingleTime(
+            setTitle = singleTimeReminder.title,
+            setDescription = singleTimeReminder.description,
+            setDate = date,
+            setTime = time,
+            setGroupId = singleTimeReminder.groupId,
+            setSpecificTimeEnabled = singleTimeReminder.specificTimeEnabled,
+            updateMode = true,
+            updateModeId = singleTimeReminder.id
+        )
+    }
+
+    setSheetVisibilityGroups(true)
+}
+
+fun pageOnClickViewGroup(page: Page, group: Group) {
+    SheetContentGroups.sheetContent = {
+        ViewPage(
+            title = page.title,
+            description = page.body,
+            localDateTime = page.dateTimeModified,
+            groupTitle = group.title,
+        )
+    }
+
+    setSheetVisibilityGroups(true)
+}
+
+fun pageOnClickEditGroup(page: Page) {
+    SheetContentGroups.sheetContent = {
+        CreatePage(
+            setTitle = page.title,
+            setDescription = page.body,
+            setGroupId = page.groupId,
+            updateMode = true,
+            updateModeId = page.id
+        )
+    }
+
+    setSheetVisibilityGroups(true)
 }

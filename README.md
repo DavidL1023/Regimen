@@ -8,6 +8,4 @@ On the playstore! (Key for version updates in google drive)
 
 [Regimen: Build Habits]()
 
-Android studio used for development,
-
-- minSdk Android 12
+Android studio used for development

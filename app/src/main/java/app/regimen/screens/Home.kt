@@ -5,14 +5,17 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -91,18 +94,21 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.text.isDigitsOnly
 import app.regimen.DynamicScaffoldState
 import app.regimen.RemindMeRow
+import app.regimen.data.Group
 import app.regimen.data.Habit
 import app.regimen.data.HabitDao
 import app.regimen.data.Page
 import app.regimen.data.PageDao
 import app.regimen.data.RecurringReminder
 import app.regimen.data.RecurringReminderDao
+import app.regimen.data.Reminder
 import app.regimen.data.SingleTimeReminder
 import app.regimen.data.SingleTimeReminderDao
 import app.regimen.fadingEdge
 import app.regimen.formatLocalDateTime
 import app.regimen.groupDao
 import app.regimen.habitDao
+import app.regimen.pageDao
 import app.regimen.recurringReminderDao
 import app.regimen.singleTimeReminderDao
 import kotlinx.coroutines.CoroutineScope
@@ -132,6 +138,11 @@ lateinit var getSelectedSegmentText: () -> String
 
 // Boolean for sheet visibility
 lateinit var setSheetVisibilityHome: (Boolean) -> Unit
+
+// Used to edit the content displayed when bottom sheet is visible
+object SheetContentHome {
+    var sheetContent: @Composable () -> Unit = { }
+}
 
 @Composable
 fun HomeScreen(
@@ -169,9 +180,6 @@ fun HomeScreen(
         }
     }
 
-    // Bottom sheet toggle and item clicked
-    var fabBoxItemClicked by remember { mutableStateOf("Habit") }
-
     // Dynamic toolbar
     onComposing(
         DynamicScaffoldState(
@@ -188,21 +196,14 @@ fun HomeScreen(
             fabBoxContent = { isExpanded ->
                 HomeScreenFabBox(
                     isExpanded = isExpanded,
-                    onFabItemClick = { setSheetVisibilityHome(true) },
-                    callback = { index -> fabBoxItemClicked = index }
+                    onFabItemClick = { setSheetVisibilityHome(true) }
                 )
             },
             expandableFab = true,
             lazyListStateVisible = listFirstVisible,
             sheetDropdownDismissed = { setSheetVisibilityHome(false) },
-            bottomSheetBoxContent = {
-                when (fabBoxItemClicked) {
-                    "Habit" -> CreateHabit()
-                    "Recurring" -> CreateRecurring()
-                    "Single Time" -> CreateSingleTime()
-                }
-            },
-            showBottomSheet = sheetVisibility,
+            bottomSheetBoxContent = { SheetContentHome.sheetContent() },
+            showBottomSheet = sheetVisibility
         )
     )
 
@@ -229,7 +230,7 @@ fun HomeScreen(
 
 // Expandable box for when fab is clicked on home screen
 @Composable
-fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit, callback: (String) -> Unit) {
+fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit) {
     Column {
         RemindMeRow(
             icon = Icons.Filled.SelfImprovement,
@@ -237,7 +238,7 @@ fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit, callback: 
             isExpanded = isExpanded,
             onClick = {
                 onFabItemClick()
-                callback("Habit")
+                SheetContentHome.sheetContent = { CreateHabit() }
             },
             enterDelay = 500
         )
@@ -248,7 +249,7 @@ fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit, callback: 
             isExpanded = isExpanded,
             onClick = {
                 onFabItemClick()
-                callback("Recurring")
+                SheetContentHome.sheetContent = { CreateRecurring() }
             },
             enterDelay = 350
         )
@@ -259,7 +260,7 @@ fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit, callback: 
             isExpanded = isExpanded,
             onClick = {
                 onFabItemClick()
-                callback("Single Time")
+                SheetContentHome.sheetContent = { CreateSingleTime() }
             },
             enterDelay = 200
         )
@@ -280,73 +281,94 @@ fun LazyReminderColumn(lazyListState: LazyListState) {
         state = lazyListState,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        content = {
+            .padding(horizontal = 16.dp)
+    ) {
 
-            item {
-                Spacer(modifier = Modifier.height(1.dp))
-            }
+        item {
+            Spacer(modifier = Modifier.height(1.dp))
+        }
 
-            items(sortedReminders) { reminder ->
-                val group = groupDao.getGroup(reminder.groupId).collectAsState(null).value
-                if (group != null ) {
+        items(sortedReminders) { reminder ->
+            val group = groupDao.getGroup(reminder.groupId).collectAsState(null).value
+            if (group != null) {
 
-                    val format: String = if(reminder.localDateTime.toLocalTime() == LocalTime.MIDNIGHT) {
+                val format: String =
+                    if (reminder.localDateTime.toLocalTime() == LocalTime.MIDNIGHT) {
                         "d MMM"
                     } else {
                         "d MMM · h:mm a"
                     }
 
-                    val reminderType = when (reminder) {
-                        is SingleTimeReminder -> "Single Time"
-                        is RecurringReminder -> "Recurring"
-                        is Habit -> "Habit"
-                        else -> "Unknown"
-                    }
-
-                    val passesSegmentFilter = when ( getSelectedSegmentText() ) {
-                        "All" -> true
-                        "Repeating" -> reminderType == "Habit" || reminderType == "Recurring"
-                        "Single Time" -> reminderType == "Single Time"
-                        else -> true
-                    }
-
-                    val chipDate = getSelectedChipDate()
-                    val passesChipDateFilter = chipDate?.let { reminder.localDateTime.toLocalDate() == getSelectedChipDate() } ?: true
-
-                    if(passesSegmentFilter && passesChipDateFilter) {
-                        ReminderCard(
-                            type = reminderType,
-                            title = reminder.title,
-                            timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
-                            groupDisplay = group.title,
-                            onClick = { setSheetVisibilityHome(true) }
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-
+                val reminderType = when (reminder) {
+                    is SingleTimeReminder -> "Single Time"
+                    is RecurringReminder -> "Recurring"
+                    is Habit -> "Habit"
+                    else -> "Unknown"
                 }
-            }
 
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
+                val passesSegmentFilter = when (getSelectedSegmentText()) {
+                    "All" -> true
+                    "Repeating" -> reminderType == "Habit" || reminderType == "Recurring"
+                    "Single Time" -> reminderType == "Single Time"
+                    else -> true
+                }
+
+                val chipDate = getSelectedChipDate()
+                val passesChipDateFilter =
+                    chipDate?.let { reminder.localDateTime.toLocalDate() == getSelectedChipDate() }
+                        ?: true
+
+                if (passesSegmentFilter && passesChipDateFilter) {
+                    ReminderCard(
+                        type = reminderType,
+                        title = reminder.title,
+                        timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
+                        groupDisplay = group.title,
+                        onClick = { reminderOnClickView(reminder, group) },
+                        onLongPress = {
+                            when (reminder) {
+                                is Habit -> {
+                                    habitOnClickEdit(reminder)
+                                }
+
+                                is RecurringReminder -> {
+                                    recurringOnClickEdit(reminder)
+                                }
+
+                                is SingleTimeReminder -> {
+                                    singleTimeOnClickEdit(reminder)
+                                }
+                            }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
             }
         }
-    )
+
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
 }
 
 // A reminder card
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ReminderCard(type: String, title: String, timeDisplay: String, groupDisplay: String,
-                 displayGroup: Boolean = true, onClick: () -> Unit) {
+                 displayGroup: Boolean = true, onClick: () -> Unit, onLongPress: () -> Unit) {
 
     Card(
-        onClick = { onClick() },
         modifier = Modifier
             .heightIn(min = 110.dp, max = 150.dp)
             .fillMaxWidth()
             .shadow(elevation = 4.dp, shape = MaterialTheme.shapes.medium)
+            .combinedClickable(
+                onClick = { onClick() },
+                onLongClick = { onLongPress() }
+            )
     ) {
         Column(
             modifier = Modifier.padding(12.dp)
@@ -371,7 +393,7 @@ fun ReminderCard(type: String, title: String, timeDisplay: String, groupDisplay:
             )
 
             Row (
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -564,23 +586,28 @@ fun toLocalDateTime(date: String, time: String, specificTimeEnabled: Boolean): L
 
 // Fab click content
 @Composable
-fun CreateHabit() {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf("")}
-    var time by remember { mutableStateOf("")}
-    var groupId by remember { mutableIntStateOf(-1) }
-    var specificTimeEnabled by remember { mutableStateOf(false) }
-    var customPeriodEnabled by remember { mutableStateOf(false) }
-    var recurringPeriod by remember { mutableStateOf("1") }
-    var recurringDay by remember { mutableStateOf("Mondays") }
+fun CreateHabit(setTitle: String = "", setDescription: String = "", setDate: String = "",
+                setTime: String = "", setGroupId: Int = -1, setSpecificTimeEnabled: Boolean = false,
+                setCustomPeriodEnabled: Boolean = false, setRecurringPeriod: String = "1",
+                setRecurringDay: String = "Mondays", updateMode: Boolean = false, updateModeId: Int = -1) {
+
+    var title by remember { mutableStateOf(setTitle) }
+    var description by remember { mutableStateOf(setDescription) }
+    var date by remember { mutableStateOf(setDate)}
+    var time by remember { mutableStateOf(setTime)}
+    var groupId by remember { mutableIntStateOf(setGroupId) }
+    var specificTimeEnabled by remember { mutableStateOf(setSpecificTimeEnabled) }
+    var customPeriodEnabled by remember { mutableStateOf(setCustomPeriodEnabled) }
+    var recurringPeriod by remember { mutableStateOf(setRecurringPeriod) }
+    var recurringDay by remember { mutableStateOf(setRecurringDay) }
 
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Explanation
-        CreateTopExplanation(header = "New habit", subtitle = "Recurring reminder that also keeps track of streak and highest streak.")
+        CreateTopExplanation(header = if(updateMode) "Edit habit" else "New habit",
+            subtitle = "Recurring reminder that also keeps track of streak and highest streak.")
 
         // Enter title and description
         CreateTitleAndDescription(
@@ -617,6 +644,7 @@ fun CreateHabit() {
             setRecurringPeriod = { recurringPeriod = it },
             recurringDay = recurringDay,
             setRecurringDay = { recurringDay = it },
+            customPeriodEnabled = customPeriodEnabled,
             setCustomPeriodEnabled = { customPeriodEnabled = it }
         )
 
@@ -631,34 +659,74 @@ fun CreateHabit() {
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 val localDateTime = toLocalDateTime(date, time, specificTimeEnabled)
-
                 CoroutineScope(Dispatchers.IO).launch {
-                    habitDao.insert(
-                        Habit(
-                            title = title,
-                            groupId = groupId,
-                            specificTimeEnabled = specificTimeEnabled,
-                            localDateTime = localDateTime,
-                            description = description,
-                            customProgressActive = 0.0f,
-                            customProgressGoal = 0.0f,
-                            customUnit = "",
+                    if (updateMode) {
+                        habitDao.getHabit(updateModeId).collect { habit ->
+                            habit.title = title
+                            habit.groupId = groupId
+                            habit.specificTimeEnabled = specificTimeEnabled
+                            habit.localDateTime = localDateTime
+                            habit.description = description
 
-                            customPeriodEnabled = customPeriodEnabled,
-                            recurringPeriod = recurringPeriod.toInt(),
-                            recurringDay = recurringDay,
-                            paused = false,
-                            streakActive = 0,
-                            streakHighest = 0
+                            habit.customPeriodEnabled = customPeriodEnabled
+                            habit.recurringPeriod = recurringPeriod.toInt()
+                            habit.recurringDay = recurringDay
+                            habit.streakActive = 0
+                            habit.streakHighest = 0
+
+                            habitDao.update(habit)
+                        }
+                    } else {
+                        habitDao.insert(
+                            Habit(
+                                title = title,
+                                groupId = groupId,
+                                specificTimeEnabled = specificTimeEnabled,
+                                localDateTime = localDateTime,
+                                description = description,
+
+                                customPeriodEnabled = customPeriodEnabled,
+                                recurringPeriod = recurringPeriod.toInt(),
+                                recurringDay = recurringDay,
+                                streakActive = 0,
+                                streakHighest = 0
+                            )
                         )
-                    )
-                }
+                    }
 
+                }
+                // Dismiss the sheet after checks
+                setSheetVisibilityHome(false)
             }
         ) {
             Text(
-                text = "Save",
+                text = if(updateMode) "Save" else "Create",
             )
+        }
+
+        // Delete button
+        if (updateMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Button(
+                    modifier = Modifier.width(200.dp),
+                    onClick = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            habitDao.getHabit(updateModeId).collect { habit ->
+                                habitDao.delete(habit)
+                            }
+                        }
+
+                        setSheetVisibilityHome(false)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(text = "Delete")
+                }
+            }
         }
 
         Spacer(modifier = Modifier.padding(vertical = 8.dp))
@@ -667,23 +735,28 @@ fun CreateHabit() {
 }
 
 @Composable
-fun CreateRecurring() {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf("")}
-    var time by remember { mutableStateOf("")}
-    var groupId by remember { mutableIntStateOf(-1) }
-    var specificTimeEnabled by remember { mutableStateOf(false) }
-    var customPeriodEnabled by remember { mutableStateOf(false) }
-    var recurringPeriod by remember { mutableStateOf("1") }
-    var recurringDay by remember { mutableStateOf("Mondays") }
+fun CreateRecurring(setTitle: String = "", setDescription: String = "", setDate: String = "",
+                    setTime: String = "", setGroupId: Int = -1, setSpecificTimeEnabled: Boolean = false,
+                    setCustomPeriodEnabled: Boolean = false, setRecurringPeriod: String = "1",
+                    setRecurringDay: String = "Mondays", updateMode: Boolean = false, updateModeId: Int = -1) {
+
+    var title by remember { mutableStateOf(setTitle) }
+    var description by remember { mutableStateOf(setDescription) }
+    var date by remember { mutableStateOf(setDate)}
+    var time by remember { mutableStateOf(setTime)}
+    var groupId by remember { mutableIntStateOf(setGroupId) }
+    var specificTimeEnabled by remember { mutableStateOf(setSpecificTimeEnabled) }
+    var customPeriodEnabled by remember { mutableStateOf(setCustomPeriodEnabled) }
+    var recurringPeriod by remember { mutableStateOf(setRecurringPeriod) }
+    var recurringDay by remember { mutableStateOf(setRecurringDay) }
 
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Explanation
-        CreateTopExplanation(header = "New recurring", subtitle = "Recurring reminder that will continue to reapply after completion, can be paused to continue at a later date.")
+        CreateTopExplanation(header = if(updateMode) "Edit recurring" else "New recurring",
+            subtitle = "Recurring reminder that will continue to reapply after completion, can be paused to continue at a later date.")
 
         // Enter title and description
         CreateTitleAndDescription(
@@ -720,6 +793,7 @@ fun CreateRecurring() {
             setRecurringPeriod = { recurringPeriod = it },
             recurringDay = recurringDay,
             setRecurringDay = { recurringDay = it },
+            customPeriodEnabled = customPeriodEnabled,
             setCustomPeriodEnabled = { customPeriodEnabled = it }
         )
 
@@ -734,32 +808,70 @@ fun CreateRecurring() {
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 val localDateTime = toLocalDateTime(date, time, specificTimeEnabled)
-
                 CoroutineScope(Dispatchers.IO).launch {
-                    recurringReminderDao.insert(
-                        RecurringReminder(
-                            title = title,
-                            groupId = groupId,
-                            specificTimeEnabled = specificTimeEnabled,
-                            localDateTime = localDateTime,
-                            description = description,
-                            customProgressActive = 0.0f,
-                            customProgressGoal = 0.0f,
-                            customUnit = "",
+                    if (updateMode) {
+                        recurringReminderDao.getRecurringReminder(updateModeId).collect { reminder ->
+                            reminder.title = title
+                            reminder.groupId = groupId
+                            reminder.specificTimeEnabled = specificTimeEnabled
+                            reminder.localDateTime = localDateTime
+                            reminder.description = description
 
-                            customPeriodEnabled = customPeriodEnabled,
-                            recurringPeriod = recurringPeriod.toInt(),
-                            recurringDay = recurringDay,
-                            paused = false
+                            reminder.customPeriodEnabled = customPeriodEnabled
+                            reminder.recurringPeriod = recurringPeriod.toInt()
+                            reminder.recurringDay = recurringDay
+
+                            recurringReminderDao.update(reminder)
+                        }
+                    } else {
+                        recurringReminderDao.insert(
+                            RecurringReminder(
+                                title = title,
+                                groupId = groupId,
+                                specificTimeEnabled = specificTimeEnabled,
+                                localDateTime = localDateTime,
+                                description = description,
+
+                                customPeriodEnabled = customPeriodEnabled,
+                                recurringPeriod = recurringPeriod.toInt(),
+                                recurringDay = recurringDay
+                            )
                         )
-                    )
-                }
+                    }
 
+                }
+                // Dismiss the sheet after checks
+                setSheetVisibilityHome(false)
             }
         ) {
             Text(
-                text = "Save",
+                text = if(updateMode) "Save" else "Create",
             )
+        }
+
+        // Delete button
+        if (updateMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Button(
+                    modifier = Modifier.width(200.dp),
+                    onClick = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            recurringReminderDao.getRecurringReminder(updateModeId).collect { recurring ->
+                                recurringReminderDao.delete(recurring)
+                            }
+                        }
+
+                        setSheetVisibilityHome(false)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(text = "Delete")
+                }
+            }
         }
 
         Spacer(modifier = Modifier.padding(vertical = 8.dp))
@@ -767,20 +879,24 @@ fun CreateRecurring() {
 }
 
 @Composable
-fun CreateSingleTime() {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var specificTimeEnabled by remember { mutableStateOf(false) }
-    var groupId by remember { mutableIntStateOf(-1) }
-    var date by remember { mutableStateOf("") }
-    var time by remember { mutableStateOf("") }
+fun CreateSingleTime(setTitle: String = "", setDescription: String = "", setDate: String = "",
+                     setTime: String = "", setGroupId: Int = -1, setSpecificTimeEnabled: Boolean = false,
+                     updateMode: Boolean = false, updateModeId: Int = -1) {
+
+    var title by remember { mutableStateOf(setTitle) }
+    var description by remember { mutableStateOf(setDescription) }
+    var specificTimeEnabled by remember { mutableStateOf(setSpecificTimeEnabled) }
+    var groupId by remember { mutableIntStateOf(setGroupId) }
+    var date by remember { mutableStateOf(setDate) }
+    var time by remember { mutableStateOf(setTime) }
 
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Explanation
-        CreateTopExplanation(header = "New reminder", subtitle = "Reminder that only happens once and will be deleted when complete.")
+        CreateTopExplanation(header = if(updateMode) "Edit reminder" else "New reminder",
+            subtitle = "Reminder that only happens once and will be deleted when complete.")
 
         // Enter title and description
         CreateTitleAndDescription(
@@ -822,27 +938,62 @@ fun CreateSingleTime() {
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 val localDateTime = toLocalDateTime(date, time, specificTimeEnabled)
-
                 CoroutineScope(Dispatchers.IO).launch {
-                    singleTimeReminderDao.insert(
-                        SingleTimeReminder(
-                            title = title,
-                            groupId = groupId,
-                            specificTimeEnabled = specificTimeEnabled,
-                            localDateTime = localDateTime,
-                            description = description,
-                            customProgressActive = 0.0f,
-                            customProgressGoal = 0.0f,
-                            customUnit = ""
-                        )
-                    )
-                }
+                    if(updateMode) {
+                        singleTimeReminderDao.getSingleTimeReminder(updateModeId).collect { reminder ->
+                            reminder.title = title
+                            reminder.groupId = groupId
+                            reminder.specificTimeEnabled = specificTimeEnabled
+                            reminder.localDateTime = localDateTime
+                            reminder.description = description
 
+                            singleTimeReminderDao.update(reminder)
+                        }
+                    } else {
+                        singleTimeReminderDao.insert(
+                            SingleTimeReminder(
+                                title = title,
+                                groupId = groupId,
+                                specificTimeEnabled = specificTimeEnabled,
+                                localDateTime = localDateTime,
+                                description = description
+                            )
+                        )
+                    }
+
+                }
+                // Dismiss the sheet after checks
+                setSheetVisibilityHome(false)
             }
         ) {
             Text(
-                text = "Save",
+                text = if(updateMode) "Save" else "Create",
             )
+        }
+
+        // Delete button
+        if (updateMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Button(
+                    modifier = Modifier.width(200.dp),
+                    onClick = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            singleTimeReminderDao.getSingleTimeReminder(updateModeId).collect { reminder ->
+                                singleTimeReminderDao.delete(reminder)
+                            }
+                        }
+
+                        setSheetVisibilityHome(false)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(text = "Delete")
+                }
+            }
         }
 
         Spacer(modifier = Modifier.padding(vertical = 12.dp))
@@ -932,7 +1083,7 @@ fun CreateTitleAndDescription(
             onValueChange = { setDescription(it) },
             label = { Text("Enter description") },
             minLines = 3,
-            maxLines = 5
+            maxLines = 8
         )
     }
 }
@@ -945,9 +1096,9 @@ fun CreateRecurringSelector(
     setRecurringPeriod: (String) -> Unit,
     recurringDay: String,
     setRecurringDay: (String) -> Unit,
+    customPeriodEnabled: Boolean,
     setCustomPeriodEnabled: (Boolean) -> Unit
 ) {
-    var customRecurringEnabled by remember { mutableStateOf(false) }
     val daysOfWeek = listOf("Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays", "Sundays")
     val selectedChipIndex = remember { mutableIntStateOf(daysOfWeek.indexOf(recurringDay)) }
 
@@ -968,17 +1119,14 @@ fun CreateRecurringSelector(
                         setRecurringDay(daysOfWeek[index])
                     },
                     label = { Text(daysOfWeek[index]) },
-                    enabled = !customRecurringEnabled
+                    enabled = !customPeriodEnabled
                 )
             }
         }
 
         LabelledCheckBox(
-            checked = customRecurringEnabled,
-            onCheckedChange = {
-                customRecurringEnabled = it
-                setCustomPeriodEnabled(it)
-            },
+            checked = customPeriodEnabled,
+            onCheckedChange = { setCustomPeriodEnabled(it) },
             label = "Custom period"
         )
 
@@ -987,7 +1135,7 @@ fun CreateRecurringSelector(
             onValueChange = { if (it.isDigitsOnly()) setRecurringPeriod(it) },
             label = { Text("Days between reminder") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            enabled = customRecurringEnabled,
+            enabled = customPeriodEnabled,
             singleLine = true
         )
 
@@ -1248,4 +1396,184 @@ fun LabelledCheckBox(
             text = label,
         )
     }
+
+}
+
+@Composable
+fun ViewReminder(type: String, title: String, description: String, localDateTime: LocalDateTime,
+                        groupTitle: String) {
+    val format: String =
+        if (localDateTime.toLocalTime() == LocalTime.MIDNIGHT) {
+            "d MMM"
+        } else {
+            "d MMM · h:mm a"
+        }
+
+    Column (
+        modifier = Modifier.padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+
+            Text(
+                modifier = Modifier
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        CircleShape
+                    ) // Oval background
+                    .padding(8.dp), // Padding for the oval background
+                text = type,
+                style = MaterialTheme.typography.labelMedium
+            )
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineLarge
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CalendarMonth,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+
+                Text(
+                    text = "Next alarm: " + formatLocalDateTime(localDateTime, format),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .alpha(0.8f)
+                        .width(16.dp),
+                    imageVector = Icons.Filled.Favorite,
+                    contentDescription = null
+                )
+
+                Text(
+                    modifier = Modifier.alpha(0.8f),
+                    text = groupTitle,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        Spacer(modifier = Modifier.padding(vertical = 12.dp))
+    }
+}
+
+fun reminderOnClickView(reminder: Reminder, group: Group) {
+    val type: String = when (reminder) {
+        is Habit -> { "Habit" }
+
+        is RecurringReminder -> { "Recurring" }
+
+        is SingleTimeReminder -> { "Single Time" }
+
+        else -> {"Unknown"}
+    }
+
+    SheetContentHome.sheetContent = {
+        ViewReminder(
+            type = type,
+            title = reminder.title,
+            description = reminder.description,
+            localDateTime = reminder.localDateTime,
+            groupTitle = group.title
+        )
+    }
+
+    setSheetVisibilityHome(true)
+}
+
+fun habitOnClickEdit(habit: Habit) {
+    val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+    val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
+
+    val date = habit.localDateTime.format(dateFormatter)
+    val time = habit.localDateTime.format(timeFormatter)
+
+    SheetContentHome.sheetContent = {
+        CreateHabit(
+            setTitle = habit.title,
+            setDescription = habit.description,
+            setDate = date,
+            setTime = time,
+            setGroupId = habit.groupId,
+            setSpecificTimeEnabled = habit.specificTimeEnabled,
+            setCustomPeriodEnabled = habit.customPeriodEnabled,
+            setRecurringPeriod = habit.recurringPeriod.toString(),
+            setRecurringDay = habit.recurringDay,
+            updateMode = true,
+            updateModeId = habit.id
+        )
+    }
+
+    setSheetVisibilityHome(true)
+}
+
+fun recurringOnClickEdit(recurringReminder: RecurringReminder) {
+    val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+    val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
+
+    val date = recurringReminder.localDateTime.format(dateFormatter)
+    val time = recurringReminder.localDateTime.format(timeFormatter)
+
+    SheetContentHome.sheetContent = {
+        CreateRecurring(
+            setTitle = recurringReminder.title,
+            setDescription = recurringReminder.description,
+            setDate = date,
+            setTime = time,
+            setGroupId = recurringReminder.groupId,
+            setSpecificTimeEnabled = recurringReminder.specificTimeEnabled,
+            setCustomPeriodEnabled = recurringReminder.customPeriodEnabled,
+            setRecurringPeriod = recurringReminder.recurringPeriod.toString(),
+            setRecurringDay = recurringReminder.recurringDay,
+            updateMode = true,
+            updateModeId = recurringReminder.id
+        )
+    }
+
+    setSheetVisibilityHome(true)
+}
+
+fun singleTimeOnClickEdit(singleTimeReminder: SingleTimeReminder) {
+    val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+    val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
+
+    val date = singleTimeReminder.localDateTime.format(dateFormatter)
+    val time = singleTimeReminder.localDateTime.format(timeFormatter)
+
+    SheetContentHome.sheetContent = {
+        CreateSingleTime(
+            setTitle = singleTimeReminder.title,
+            setDescription = singleTimeReminder.description,
+            setDate = date,
+            setTime = time,
+            setGroupId = singleTimeReminder.groupId,
+            setSpecificTimeEnabled = singleTimeReminder.specificTimeEnabled,
+            updateMode = true,
+            updateModeId = singleTimeReminder.id
+        )
+    }
+
+    setSheetVisibilityHome(true)
 }

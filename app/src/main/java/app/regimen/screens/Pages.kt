@@ -5,7 +5,10 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +19,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -23,7 +27,10 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -31,7 +38,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.DropdownMenuItem
@@ -55,8 +64,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.regimen.DynamicScaffoldState
+import app.regimen.data.Group
 import app.regimen.data.Page
 import app.regimen.formatLocalDateTime
 import app.regimen.groupDao
@@ -120,11 +133,10 @@ fun PagesScreen(
             lazyStaggeredGridStateVisible = staggeredListFirstVisible,
             bottomSheetBoxContent = { SheetContentPages.sheetContent() },
             showBottomSheet = sheetVisibility,
-            sheetDropdownDismissed = {
-                setSheetVisibilityPages(false)
-
-                //Set sheet content back to default empty state
+            sheetDropdownDismissed = { setSheetVisibilityPages(false) },
+            showBottomSheetFabClicked = {
                 SheetContentPages.sheetContent = { CreatePage() }
+                sheetVisibility = true
             }
         )
     )
@@ -158,8 +170,8 @@ fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
     val pagesState by pageDao.getAllPages().collectAsState(initial = emptyList())
 
     val sortedPages = when ( getSelectedOptionText() ) {
-        "Date edited" -> pagesState.sortedBy { it.dateTimeModified }
-        "Date created" -> pagesState.sortedBy { it.dateTimeCreated }
+        "Date edited" -> pagesState.sortedByDescending { it.dateTimeModified }
+        "Date created" -> pagesState.sortedByDescending { it.dateTimeCreated }
         "Header" -> pagesState.sortedBy { it.title }
         else -> pagesState
     }
@@ -171,19 +183,20 @@ fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalItemSpacing = 8.dp,
-        content = {
+        verticalItemSpacing = 8.dp
+    ) {
 
-            item(span = StaggeredGridItemSpan.FullLine) {
-                Spacer(modifier = Modifier.height(0.5.dp))
-            }
+        item(span = StaggeredGridItemSpan.FullLine) {
+            Spacer(modifier = Modifier.height(0.5.dp))
+        }
 
-            items(sortedPages) { page ->
-                val timeDisplay: String
-                val dateTimeModified = page.dateTimeModified
-                val currentTime = LocalDateTime.now()
+        items(sortedPages) { page ->
+            val timeDisplay: String
+            val dateTimeModified = page.dateTimeModified
+            val currentTime = LocalDateTime.now()
 
-                timeDisplay = if (dateTimeModified.toLocalDate() == currentTime.toLocalDate()) { // Same day
+            timeDisplay =
+                if (dateTimeModified.toLocalDate() == currentTime.toLocalDate()) { // Same day
                     formatLocalDateTime(dateTimeModified, "'Today at' h:mm a")
                 } else if (dateTimeModified.year != currentTime.year) { // Different year
                     formatLocalDateTime(dateTimeModified, "MMM dd, yyyy")
@@ -191,33 +204,24 @@ fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
                     formatLocalDateTime(dateTimeModified, "EEEE, MMM dd")
                 }
 
-                val group = groupDao.getGroup(page.groupId).collectAsState(null).value
+            val group = groupDao.getGroup(page.groupId).collectAsState(null).value
 
-                if (group != null) {
-                    PageCard(
-                        header = page.title,
-                        body = page.body,
-                        timeDisplay = timeDisplay,
-                        groupDisplay = group.title,
-                        onClick = {
-                            SheetContentPages.sheetContent = {
-                                CreatePage(setTitle = page.title,
-                                    setDescription = page.body,
-                                    setGroupId = page.groupId,
-                                    updateMode = true
-                                )
-                            }
-                            setSheetVisibilityPages(true)
-                        }
-                    )
-                }
-            }
-
-            item(span = StaggeredGridItemSpan.FullLine) {
-                Spacer(modifier = Modifier.height(16.dp))
+            if (group != null) {
+                PageCard(
+                    header = page.title,
+                    body = page.body,
+                    timeDisplay = timeDisplay,
+                    groupDisplay = group.title,
+                    onClick = { pageOnClickView(page, group) },
+                    onLongPress = { pageOnClickEdit(page) }
+                )
             }
         }
-    )
+
+        item(span = StaggeredGridItemSpan.FullLine) {
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
 }
 
 // The sort expandable selection menu
@@ -272,16 +276,19 @@ fun SortExpandable() {
 }
 
 // A page card
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PageCard(header: String, body: String, timeDisplay: String, groupDisplay: String,
-             displayGroup: Boolean = true,  onClick: () -> Unit) {
+             displayGroup: Boolean = true,  onClick: () -> Unit, onLongPress: () -> Unit) {
     Card(
-        onClick = { onClick() },
         modifier = Modifier
             .heightIn(min = 80.dp, max = 200.dp)
             .fillMaxWidth()
             .shadow(elevation = 4.dp, shape = MaterialTheme.shapes.medium)
+            .combinedClickable(
+                onClick = { onClick() },
+                onLongClick = { onLongPress() }
+            )
     ) {
         Column(
             modifier = Modifier.padding(10.dp)
@@ -332,11 +339,13 @@ fun PageCard(header: String, body: String, timeDisplay: String, groupDisplay: St
 }
 
 // Page search bar
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun PageSearchBar() {
     var text by remember { mutableStateOf("")}
     var active by remember { mutableStateOf(false)}
+
+    val pagesState by pageDao.getAllPages().collectAsState(initial = emptyList())
 
     DockedSearchBar(
         modifier = Modifier
@@ -381,14 +390,49 @@ fun PageSearchBar() {
             }
         }
     ) {
+        // Filter pages based on the search text
+        val filteredPages = pagesState.filter { page ->
+            page.title.contains(text, ignoreCase = true)
+        }
 
+        // Displaying filtered pages
+        Column( modifier = Modifier.verticalScroll(rememberScrollState()) ) {
+
+            filteredPages.forEach { page ->
+                val group = groupDao.getGroup(page.groupId).collectAsState(null).value
+
+                Card(
+                    modifier = Modifier
+                        .heightIn(min = 80.dp, max = 100.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .shadow(elevation = 2.dp, shape = MaterialTheme.shapes.medium)
+                        .combinedClickable(
+                            onClick = {
+                                if (group != null) {
+                                    pageOnClickView(page, group)
+                                }
+                            },
+                            onLongClick = { pageOnClickEdit(page) }
+                        )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        Text(text = page.title, style = TextStyle(fontWeight = FontWeight.Bold))
+                        Text(text = page.body, modifier = Modifier.padding(top = 2.dp))
+                    }
+                }
+            }
+
+        }
     }
 }
 
 // Fab click content
 @Composable
 fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: Int = -1,
-               updateMode: Boolean = false) {
+               updateMode: Boolean = false, updateModeId: Int = -1) {
     var title by remember { mutableStateOf(setTitle) }
     var description by remember { mutableStateOf(setDescription) }
     var groupId by remember { mutableIntStateOf(setGroupId) }
@@ -422,7 +466,7 @@ fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: I
                 CoroutineScope(Dispatchers.IO).launch {
                     val currentTime = LocalDateTime.now()
                     if (updateMode) {
-                        pageDao.getPage(groupId).collect { page ->
+                        pageDao.getPage(updateModeId).collect { page ->
                             page.title = title
                             page.groupId = groupId
                             page.body = description
@@ -454,8 +498,142 @@ fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: I
             )
         }
 
+        // Delete button
+        if (updateMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Button(
+                    modifier = Modifier.width(200.dp),
+                    onClick = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            pageDao.getPage(updateModeId).collect { page ->
+                                pageDao.delete(page)
+                            }
+                        }
+
+                        setSheetVisibilityPages(false)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(text = "Delete")
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.padding(vertical = 12.dp))
 
     }
 }
 
+@Composable
+fun ViewPage(title: String, description: String, localDateTime: LocalDateTime, groupTitle: String) {
+    Column (
+        modifier = Modifier.padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        val currentTime = LocalDateTime.now()
+
+        val timeDisplay =
+            if (localDateTime.toLocalDate() == currentTime.toLocalDate()) { // Same day
+                formatLocalDateTime(localDateTime, "'Today at' h:mm a")
+            } else if (localDateTime.year != currentTime.year) { // Different year
+                formatLocalDateTime(localDateTime, "MMM dd, yyyy")
+            } else { // Same year different day
+                formatLocalDateTime(localDateTime, "EEEE, MMM dd")
+            }
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                modifier = Modifier
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        CircleShape
+                    ) // Oval background
+                    .padding(8.dp), // Padding for the oval background
+                text = "Page",
+                style = MaterialTheme.typography.labelMedium
+            )
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineLarge
+            )
+
+            Row (
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CalendarMonth,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+
+                Text(
+                    text = "Last edited: $timeDisplay",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Row (
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .alpha(0.8f)
+                        .width(16.dp),
+                    imageVector = Icons.Filled.Favorite,
+                    contentDescription = null
+                )
+
+                Text(
+                    modifier = Modifier.alpha(0.8f),
+                    text = groupTitle,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+        }
+
+        Text(
+            modifier = Modifier,
+            text = description,
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        Spacer(modifier = Modifier.padding(vertical = 12.dp))
+    }
+}
+
+fun pageOnClickView(page: Page, group: Group) {
+    SheetContentPages.sheetContent = {
+        ViewPage(
+            title = page.title,
+            description = page.body,
+            localDateTime = page.dateTimeModified,
+            groupTitle = group.title,
+        )
+    }
+
+    setSheetVisibilityPages(true)
+}
+
+fun pageOnClickEdit(page: Page) {
+    SheetContentPages.sheetContent = {
+        CreatePage(
+            setTitle = page.title,
+            setDescription = page.body,
+            setGroupId = page.groupId,
+            updateMode = true,
+            updateModeId = page.id
+        )
+    }
+
+    setSheetVisibilityPages(true)
+}
