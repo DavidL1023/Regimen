@@ -1,5 +1,6 @@
 package app.regimen.screens
 
+import android.graphics.drawable.Icon
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Left
 import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Right
@@ -68,9 +69,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.regimen.ColorsEnum
 import app.regimen.DynamicScaffoldState
+import app.regimen.IconsEnum
 import app.regimen.data.Group
 import app.regimen.data.Habit
 import app.regimen.data.Page
@@ -348,7 +352,6 @@ fun RemindersGroupTab() {
                     type = reminderType,
                     title = reminder.title,
                     timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
-                    groupDisplay = "",
                     displayGroup = false,
                     onClick = {
                         if (group != null) {
@@ -440,7 +443,6 @@ fun PagesGroupTab() {
                     header = page.title,
                     body = page.body,
                     timeDisplay = timeDisplay,
-                    groupDisplay = "",
                     displayGroup = false,
                     onClick = {
                         if (group != null) {
@@ -462,7 +464,9 @@ fun PagesGroupTab() {
 // Item for horizontal list of group selection
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit, onLongPress: () -> Unit) {
+fun GroupItem(name: String, iconId: Int, colorId: Int, selected: Boolean,
+              onSelectedChange: () -> Unit, onLongPress: () -> Unit
+) {
 
     val textStyle = if (selected) {
         MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
@@ -483,13 +487,19 @@ fun GroupItem(name: String, selected: Boolean, onSelectedChange: () -> Unit, onL
                 onLongClick = { onLongPress() }
             )
     ) {
-        Icon(
-            imageVector = Icons.Default.Favorite,
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = 26.dp, end = 26.dp, bottom = 16.dp)
-        )
+        val imageVector = IconsEnum.iconFromIntValue(iconId)
+        val color = ColorsEnum.colorFromIntValue(colorId)
+
+        if (imageVector != null && color != null) {
+            Icon(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 26.dp, end = 26.dp, bottom = 16.dp),
+                imageVector = imageVector,
+                tint = color,
+                contentDescription = null
+            )
+        }
 
         Text(
             text = name,
@@ -530,6 +540,8 @@ fun ExpandableGroupList(isVisible: Boolean) {
             val isSelected = selectedGroupId == group.id
             GroupItem(
                 name = group.title,
+                iconId = group.icon,
+                colorId = group.color,
                 selected = isSelected,
                 onSelectedChange = {
                     if (isVisible) {
@@ -567,6 +579,7 @@ fun CreateGroup(setTitle: String = "", setDescription: String = "", setColor: In
         var title by remember { mutableStateOf(setTitle) }
         var description by remember { mutableStateOf(setDescription) }
         var color by remember { mutableIntStateOf(setColor)}
+        var icon by remember { mutableIntStateOf(setIcon) }
 
         // Explanation
         CreateTopExplanation(header = if(updateMode) "Edit group" else "Create group",
@@ -582,6 +595,9 @@ fun CreateGroup(setTitle: String = "", setDescription: String = "", setColor: In
 
         // Color picker
         ColorPicker( color = color, setColor = { color = it } )
+
+        // Icon picker
+        IconPicker(icon = icon, setIcon = { icon = it })
 
         // Save button
         Button(
@@ -646,33 +662,8 @@ fun CreateGroup(setTitle: String = "", setDescription: String = "", setColor: In
     }
 }
 
-// Define an enum class for your colors
-enum class CustomColor(val color: Color, val intValue: Int) { //TODO move this and image ints to another class
-    Red(Color(0xFFC93C20), 0),
-    Green(Color(0xFF57A639), 1),
-    Blue(Color(0xFF3B83BD), 2),
-    Yellow(Color(0xFFFFFF00), 3),
-    Purple(Color(0xFF800080), 4),
-    Cyan(Color(0xFF00FFFF), 5),
-    Magenta(Color(0xFFFF00FF), 6),
-    Orange(Color(0xFFFFA500), 7),
-    Pink(Color(0xFFFFC0CB), 8),
-    Brown(Color(0xFF8E402A), 9),
-    Teal(Color(0xFF008080), 10),
-    TerraBrown(Color(0xFF4E3B31), 11),
-    Violet(Color(0xFF924E7D), 12),
-    Olive(Color(0xFF808000), 13),
-    SlateGray(Color(0xFF708090), 14);
-
-    fun toComposeColor(): Color {
-        return color
-    }
-
-}
-
 @Composable
 fun ColorPicker(color: Int, setColor: (Int) -> Unit) {
-
     Column {
         Text(
             text = "Select Color",
@@ -681,7 +672,7 @@ fun ColorPicker(color: Int, setColor: (Int) -> Unit) {
         )
 
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(CustomColor.values()) {customColor ->
+            items(ColorsEnum.values()) { customColor ->
                 val isSelected = color == customColor.intValue
                 val alpha = animateFloatAsState(if (isSelected) 1f else 0.4f).value
                 val roundedShape = animateDpAsState(if (isSelected) 50.dp else 10.dp).value
@@ -691,7 +682,9 @@ fun ColorPicker(color: Int, setColor: (Int) -> Unit) {
                         .clip(RoundedCornerShape(roundedShape))
                         .size(50.dp)
                         .background(
-                            color = customColor.toComposeColor().copy(alpha = alpha),
+                            color = customColor
+                                .toComposeColor()
+                                .copy(alpha = alpha),
                             shape = RoundedCornerShape(roundedShape)
                         )
                         .clickable {
@@ -703,28 +696,69 @@ fun ColorPicker(color: Int, setColor: (Int) -> Unit) {
     }
 }
 
+@Composable
+fun IconPicker(icon: Int, setIcon: (Int) -> Unit) {
+    Column {
+        Text(
+            text = "Select Icon",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(bottom = 3.dp)
+        )
+
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(IconsEnum.values()) { customIcon ->
+                val isSelected = icon == customIcon.intValue
+                val alpha = animateFloatAsState(if (isSelected) 1f else 0.4f).value
+                val roundedShape = animateDpAsState(if (isSelected) 50.dp else 10.dp).value
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(roundedShape))
+                        .size(50.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = alpha),
+                            shape = RoundedCornerShape(roundedShape)
+                        )
+                        .clickable {
+                            setIcon(customIcon.intValue)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        modifier = Modifier
+                            .size(35.dp)
+                            .alpha(alpha),
+                        imageVector = customIcon.toComposeIcon(),
+                        contentDescription = null
+                    )
+                }
+            }
+        }
+    }
+}
+
 fun reminderOnClickViewGroup(reminder: Reminder, group: Group) {
     val type: String = when (reminder) {
         is Habit -> { "Habit" }
-
         is RecurringReminder -> { "Recurring" }
-
         is SingleTimeReminder -> { "Single Time" }
 
         else -> {"Unknown"}
     }
 
-    SheetContentHome.sheetContent = {
+    SheetContentGroups.sheetContent = {
         ViewReminder(
             type = type,
             title = reminder.title,
             description = reminder.description,
             localDateTime = reminder.localDateTime,
-            groupTitle = group.title
+            groupTitle = group.title,
+            groupIconId = group.icon,
+            groupColorId = group.color
         )
     }
 
-    setSheetVisibilityHome(true)
+    setSheetVisibilityGroups(true)
 }
 
 fun habitOnClickEditGroup(habit: Habit) {
@@ -809,6 +843,8 @@ fun pageOnClickViewGroup(page: Page, group: Group) {
             description = page.body,
             localDateTime = page.dateTimeModified,
             groupTitle = group.title,
+            groupIconId = group.icon,
+            groupColorId = group.color
         )
     }
 

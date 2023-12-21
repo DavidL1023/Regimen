@@ -92,7 +92,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.text.isDigitsOnly
+import app.regimen.ColorsEnum
 import app.regimen.DynamicScaffoldState
+import app.regimen.IconsEnum
 import app.regimen.RemindMeRow
 import app.regimen.data.Group
 import app.regimen.data.Habit
@@ -323,7 +325,9 @@ fun LazyReminderColumn(lazyListState: LazyListState) {
                         type = reminderType,
                         title = reminder.title,
                         timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
-                        groupDisplay = group.title,
+                        groupTitle = group.title,
+                        groupIconId = group.icon,
+                        groupColorId = group.color,
                         onClick = { reminderOnClickView(reminder, group) },
                         onLongPress = {
                             when (reminder) {
@@ -357,8 +361,10 @@ fun LazyReminderColumn(lazyListState: LazyListState) {
 // A reminder card
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ReminderCard(type: String, title: String, timeDisplay: String, groupDisplay: String,
-                 displayGroup: Boolean = true, onClick: () -> Unit, onLongPress: () -> Unit) {
+fun ReminderCard(type: String, title: String, timeDisplay: String, groupTitle: String = "",
+                 groupIconId: Int = -1, groupColorId: Int = -1, displayGroup: Boolean = true,
+                 onClick: () -> Unit, onLongPress: () -> Unit
+) {
 
     Card(
         modifier = Modifier
@@ -409,26 +415,9 @@ fun ReminderCard(type: String, title: String, timeDisplay: String, groupDisplay:
             }
 
             if (displayGroup) {
-                Spacer(modifier = Modifier.padding(6.dp))
+                Spacer(modifier = Modifier.padding(vertical = 6.dp))
 
-                Row (
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        modifier = Modifier
-                            .alpha(0.80f)
-                            .width(16.dp),
-                        imageVector = Icons.Filled.Favorite,
-                        contentDescription = null
-                    )
-
-                    Text(
-                        modifier = Modifier.alpha(0.80f),
-                        text = groupDisplay,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                DisplayGroup(groupName = groupTitle, iconId = groupIconId, colorId = groupColorId)
 
             }
         }
@@ -520,6 +509,35 @@ private fun VerticalChip(
     }
 }
 
+// Display group with icon and color
+@Composable
+fun DisplayGroup(groupName: String, iconId: Int, colorId: Int) {
+    Row (
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val imageVector = IconsEnum.iconFromIntValue(iconId)
+        val color = ColorsEnum.colorFromIntValue(colorId)
+
+        if (imageVector != null && color != null) {
+            Icon(
+                modifier = Modifier
+                    .alpha(0.80f)
+                    .width(16.dp),
+                imageVector = imageVector,
+                tint = color,
+                contentDescription = null
+            )
+        }
+
+        Text(
+            modifier = Modifier.alpha(0.80f),
+            text = groupName,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
 // Segmented filter button for categories
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -606,7 +624,7 @@ fun CreateHabit(setTitle: String = "", setDescription: String = "", setDate: Str
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Explanation
-        CreateTopExplanation(header = if(updateMode) "Edit habit" else "New habit",
+        CreateTopExplanation(header = if(updateMode) "Edit Habit" else "New Habit",
             subtitle = "Recurring reminder that also keeps track of streak and highest streak.")
 
         // Enter title and description
@@ -650,7 +668,7 @@ fun CreateHabit(setTitle: String = "", setDescription: String = "", setDate: Str
 
         // Select group
         CreateGroupSelector(
-            group = groupId,
+            groupId = groupId,
             setGroup = { groupId = it }
         )
 
@@ -755,7 +773,7 @@ fun CreateRecurring(setTitle: String = "", setDescription: String = "", setDate:
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Explanation
-        CreateTopExplanation(header = if(updateMode) "Edit recurring" else "New recurring",
+        CreateTopExplanation(header = if(updateMode) "Edit Recurring" else "New Recurring",
             subtitle = "Recurring reminder that will continue to reapply after completion, can be paused to continue at a later date.")
 
         // Enter title and description
@@ -799,7 +817,7 @@ fun CreateRecurring(setTitle: String = "", setDescription: String = "", setDate:
 
         // Select group
         CreateGroupSelector(
-            group = groupId,
+            groupId = groupId,
             setGroup = { groupId = it }
         )
 
@@ -895,7 +913,7 @@ fun CreateSingleTime(setTitle: String = "", setDescription: String = "", setDate
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Explanation
-        CreateTopExplanation(header = if(updateMode) "Edit reminder" else "New reminder",
+        CreateTopExplanation(header = if(updateMode) "Edit Reminder" else "New Reminder",
             subtitle = "Reminder that only happens once and will be deleted when complete.")
 
         // Enter title and description
@@ -929,7 +947,7 @@ fun CreateSingleTime(setTitle: String = "", setDescription: String = "", setDate
 
         // Select group
         CreateGroupSelector(
-            group = groupId,
+            groupId = groupId,
             setGroup = { groupId = it }
         )
 
@@ -1001,7 +1019,7 @@ fun CreateSingleTime(setTitle: String = "", setDescription: String = "", setDate
 }
 
 @Composable
-fun CreateGroupSelector(group: Int, setGroup: (Int) -> Unit) {
+fun CreateGroupSelector(groupId: Int, setGroup: (Int) -> Unit) {
     val groupList by groupDao.getAllGroups().collectAsState(initial = emptyList())
 
     Column {
@@ -1011,22 +1029,27 @@ fun CreateGroupSelector(group: Int, setGroup: (Int) -> Unit) {
         )
 
         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(groupList) { groupFromList ->
-                val isSelected = groupFromList.id == group
+            items(groupList) { group ->
+                val isSelected = group.id == groupId
+                val imageVector = IconsEnum.iconFromIntValue(group.icon)
+                val color = ColorsEnum.colorFromIntValue(group.color)
 
-                FilterChip(
-                    selected = isSelected,
-                    onClick = {
-                        setGroup(groupFromList.id)
-                    },
-                    label = { Text(groupFromList.title) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.Favorite,
-                            contentDescription = null
-                        )
-                    }
-                )
+                if (imageVector != null && color != null) {
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            setGroup(group.id)
+                        },
+                        label = { Text(group.title) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = imageVector,
+                                tint = color,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                }
 
             }
         }
@@ -1401,7 +1424,9 @@ fun LabelledCheckBox(
 
 @Composable
 fun ViewReminder(type: String, title: String, description: String, localDateTime: LocalDateTime,
-                        groupTitle: String) {
+                        groupTitle: String, groupIconId: Int, groupColorId: Int
+) {
+
     val format: String =
         if (localDateTime.toLocalTime() == LocalTime.MIDNIGHT) {
             "d MMM"
@@ -1450,24 +1475,7 @@ fun ViewReminder(type: String, title: String, description: String, localDateTime
                 )
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    modifier = Modifier
-                        .alpha(0.8f)
-                        .width(16.dp),
-                    imageVector = Icons.Filled.Favorite,
-                    contentDescription = null
-                )
-
-                Text(
-                    modifier = Modifier.alpha(0.8f),
-                    text = groupTitle,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+            DisplayGroup(groupName = groupTitle, iconId = groupIconId, colorId = groupColorId)
         }
 
         Text(
@@ -1496,7 +1504,9 @@ fun reminderOnClickView(reminder: Reminder, group: Group) {
             title = reminder.title,
             description = reminder.description,
             localDateTime = reminder.localDateTime,
-            groupTitle = group.title
+            groupTitle = group.title,
+            groupIconId = group.icon,
+            groupColorId = group.color
         )
     }
 

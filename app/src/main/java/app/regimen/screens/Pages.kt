@@ -211,7 +211,9 @@ fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
                     header = page.title,
                     body = page.body,
                     timeDisplay = timeDisplay,
-                    groupDisplay = group.title,
+                    groupTitle = group.title,
+                    groupIconId = group.icon,
+                    groupColorId = group.color,
                     onClick = { pageOnClickView(page, group) },
                     onLongPress = { pageOnClickEdit(page) }
                 )
@@ -278,8 +280,11 @@ fun SortExpandable() {
 // A page card
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PageCard(header: String, body: String, timeDisplay: String, groupDisplay: String,
-             displayGroup: Boolean = true,  onClick: () -> Unit, onLongPress: () -> Unit) {
+fun PageCard(header: String, body: String, timeDisplay: String, groupTitle: String = "",
+             groupIconId: Int = -1, groupColorId: Int = -1, displayGroup: Boolean = true,
+             onClick: () -> Unit, onLongPress: () -> Unit
+) {
+
     Card(
         modifier = Modifier
             .heightIn(min = 80.dp, max = 200.dp)
@@ -312,26 +317,7 @@ fun PageCard(header: String, body: String, timeDisplay: String, groupDisplay: St
             if (displayGroup) {
                 Spacer(modifier = Modifier.padding(2.dp))
 
-                Row (
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        modifier = Modifier
-                            .alpha(0.80f)
-                            .width(16.dp),
-                        imageVector = Icons.Filled.Favorite,
-                        contentDescription = null
-                    )
-
-                    Text(
-                        modifier = Modifier
-                            .alpha(0.80f)
-                            .padding(top = 2.dp),
-                        text = groupDisplay,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                DisplayGroup(groupName = groupTitle, iconId = groupIconId, colorId = groupColorId)
 
             }
         }
@@ -455,7 +441,7 @@ fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: I
 
         // Group
         CreateGroupSelector(
-            group = groupId,
+            groupId = groupId,
             setGroup = { groupId = it }
         )
 
@@ -529,7 +515,10 @@ fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: I
 }
 
 @Composable
-fun ViewPage(title: String, description: String, localDateTime: LocalDateTime, groupTitle: String) {
+fun ViewPage(title: String, description: String, localDateTime: LocalDateTime, groupTitle: String,
+             groupIconId: Int, groupColorId: Int
+) {
+
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -580,24 +569,7 @@ fun ViewPage(title: String, description: String, localDateTime: LocalDateTime, g
                 )
             }
 
-            Row (
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    modifier = Modifier
-                        .alpha(0.8f)
-                        .width(16.dp),
-                    imageVector = Icons.Filled.Favorite,
-                    contentDescription = null
-                )
-
-                Text(
-                    modifier = Modifier.alpha(0.8f),
-                    text = groupTitle,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+            DisplayGroup(groupName = groupTitle, iconId = groupIconId, colorId = groupColorId)
 
         }
 
@@ -618,6 +590,8 @@ fun pageOnClickView(page: Page, group: Group) {
             description = page.body,
             localDateTime = page.dateTimeModified,
             groupTitle = group.title,
+            groupIconId = group.icon,
+            groupColorId = group.color
         )
     }
 
