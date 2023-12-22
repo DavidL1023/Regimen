@@ -23,20 +23,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 // Define an enum class for colors
 enum class ColorsEnum(val color: Color, val intValue: Int) {
     Red(Color(0xFFC93C20), 0),
-    Green(Color(0xFF57A639), 1),
+    Green(Color(0xFF6BCF47), 1),
     Blue(Color(0xFF3B83BD), 2),
-    Yellow(Color(0xFFFFFF00), 3),
-    Purple(Color(0xFF800080), 4),
+    Yellow(Color(0xFFF1C40F), 3),
+    Purple(Color(0xFF9D5C9D), 4),
     Cyan(Color(0xFF00FFFF), 5),
     Magenta(Color(0xFFFF00FF), 6),
-    Orange(Color(0xFFFFA500), 7),
-    Pink(Color(0xFFFFC0CB), 8),
-    Brown(Color(0xFF8E402A), 9),
+    Orange(Color(0xFFFF8C00), 7),
+    Pink(Color(0xFFE91E63), 8),
+    Brown(Color(0xFFA0522D), 9),
     Teal(Color(0xFF008080), 10),
-    TerraBrown(Color(0xFF4E3B31), 11),
-    Violet(Color(0xFF924E7D), 12),
-    Olive(Color(0xFF808000), 13),
-    SlateGray(Color(0xFF708090), 14);
+    TerraBrown(Color(0xFF806355), 11),
+    Violet(Color(0xFF8A2BE2), 12),
+    Olive(Color(0xFFBDB76B), 13),
+    SlateGray(Color(0xFFB0C4DE), 14);
 
     fun toComposeColor(): Color {
         return color

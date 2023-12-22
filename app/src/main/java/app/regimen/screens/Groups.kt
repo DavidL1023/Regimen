@@ -609,7 +609,7 @@ fun CreateGroup(setTitle: String = "", setDescription: String = "", setColor: In
                             group.title = title
                             group.description = description
                             group.color = color
-                            group.icon = 0
+                            group.icon = icon
 
                             groupDao.update(group)
                         }
@@ -619,7 +619,7 @@ fun CreateGroup(setTitle: String = "", setDescription: String = "", setColor: In
                                 title = title,
                                 description = description,
                                 color = color,
-                                icon = 0
+                                icon = icon
                             )
                         )
                     }

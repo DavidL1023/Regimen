@@ -5,6 +5,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -520,18 +521,19 @@ fun DisplayGroup(groupName: String, iconId: Int, colorId: Int) {
         val color = ColorsEnum.colorFromIntValue(colorId)
 
         if (imageVector != null && color != null) {
-            Icon(
-                modifier = Modifier
-                    .alpha(0.80f)
-                    .width(16.dp),
-                imageVector = imageVector,
-                tint = color,
-                contentDescription = null
-            )
+            Box(
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    modifier = Modifier.width(24.dp),
+                    imageVector = imageVector,
+                    tint = color,
+                    contentDescription = null
+                )
+            }
         }
 
         Text(
-            modifier = Modifier.alpha(0.80f),
             text = groupName,
             style = MaterialTheme.typography.bodyMedium
         )
@@ -1042,11 +1044,16 @@ fun CreateGroupSelector(groupId: Int, setGroup: (Int) -> Unit) {
                         },
                         label = { Text(group.title) },
                         leadingIcon = {
-                            Icon(
-                                imageVector = imageVector,
-                                tint = color,
-                                contentDescription = null
-                            )
+                            Box(
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = imageVector,
+                                    tint = color,
+                                    contentDescription = null
+                                )
+                            }
+
                         }
                     )
                 }
@@ -1299,14 +1306,22 @@ fun MyTimePickerDialog(
                             contentDescription = null
                         )
                     }
+
                     Spacer(modifier = Modifier.weight(1f))
+
                     Button(
                         onClick = onCancel
-                    ) { Text("Cancel") }
+                    ) {
+                        Text("Cancel")
+                    }
+
                     Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+
                     OutlinedButton(
                         onClick = onConfirm
-                    ) { Text("OK") }
+                    ) {
+                        Text("OK")
+                    }
                 }
             }
         }
