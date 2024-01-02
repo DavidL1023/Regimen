@@ -75,6 +75,8 @@ import androidx.compose.ui.unit.dp
 import app.regimen.ColorsEnum
 import app.regimen.DynamicScaffoldState
 import app.regimen.IconsEnum
+import app.regimen.NoGroups
+import app.regimen.NoPages
 import app.regimen.data.Group
 import app.regimen.data.Habit
 import app.regimen.data.Page
@@ -164,8 +166,13 @@ fun GroupsScreen(
     // Groups column
     Column {
 
-        // Tab selector (includes group row)
-        GroupTabs()
+        // Group main content
+        val groupList by groupDao.getAllGroups().collectAsState(initial = emptyList())
+        if (groupList.isEmpty()) {
+            NoGroups()
+        } else {
+            GroupTabs()
+        }
 
     }
 }
@@ -315,9 +322,7 @@ fun RemindersGroupTab() {
 
     LazyColumn(
         state = lazyListState,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+        modifier = Modifier.fillMaxWidth()
     ){
 
         item {
@@ -405,9 +410,7 @@ fun PagesGroupTab() {
     LazyVerticalStaggeredGrid(
         state = lazyStaggeredGridState,
         columns = StaggeredGridCells.Fixed(2),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalItemSpacing = 8.dp
     ) {
@@ -469,14 +472,14 @@ fun GroupItem(name: String, iconId: Int, colorId: Int, selected: Boolean,
 ) {
 
     val textStyle = if (selected) {
-        MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+        MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
     } else {
-        MaterialTheme.typography.bodyLarge
+        MaterialTheme.typography.bodyMedium
     }
 
     Box(
         modifier = Modifier
-            .size(animateDpAsState(if (selected) 130.dp else 120.dp).value)
+            .size(animateDpAsState(if (selected) 150.dp else 140.dp).value)
             .clip(RoundedCornerShape(16.dp)) // allows ripple to match shape
             .background(
                 color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
@@ -505,7 +508,7 @@ fun GroupItem(name: String, iconId: Int, colorId: Int, selected: Boolean,
             text = name,
             style = textStyle,
             modifier = Modifier
-                .padding(12.dp)
+                .padding(10.dp)
                 .align(Alignment.BottomCenter)
         )
     }
@@ -519,7 +522,7 @@ fun ExpandableGroupList(isVisible: Boolean) {
     val targetHeight = if (isVisible) 130.dp else 0.dp
     val animatedHeight by animateDpAsState(targetValue = targetHeight, animationSpec = spring(dampingRatio = 3f))
 
-    val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.01f to Color.Red, 0.99f to Color.Red, 1f to Color.Transparent)
+    val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.02f to Color.Red, 0.98f to Color.Red, 1f to Color.Transparent)
 
     // Retrieve the list of groups from the DAO
     val groupsState by groupDao.getAllGroups().collectAsState(initial = emptyList())

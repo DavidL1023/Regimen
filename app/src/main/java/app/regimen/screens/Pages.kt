@@ -69,11 +69,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.regimen.DynamicScaffoldState
+import app.regimen.MissingGroups
+import app.regimen.NoPages
 import app.regimen.data.Group
 import app.regimen.data.Page
 import app.regimen.formatLocalDateTime
 import app.regimen.groupDao
 import app.regimen.pageDao
+import app.regimen.shortenText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -131,7 +134,14 @@ fun PagesScreen(
                 }
             },
             lazyStaggeredGridStateVisible = staggeredListFirstVisible,
-            bottomSheetBoxContent = { SheetContentPages.sheetContent() },
+            bottomSheetBoxContent = {
+                val groupList by groupDao.getAllGroups().collectAsState(initial = emptyList())
+                if (groupList.isEmpty()) {
+                    MissingGroups()
+                } else {
+                    SheetContentPages.sheetContent()
+                }
+            },
             showBottomSheet = sheetVisibility,
             sheetDropdownDismissed = { setSheetVisibilityPages(false) },
             showBottomSheetFabClicked = {
@@ -157,8 +167,13 @@ fun PagesScreen(
         // Sort button
         SortExpandable()
 
-        // Page Cards using a responsive grid
-        LazyPageGrid(lazyStaggeredGridState)
+        // Pages main content of page cards
+        val pageList by pageDao.getAllPages().collectAsState(initial = emptyList())
+        if (pageList.isEmpty()) {
+            NoPages()
+        } else {
+            LazyPageGrid(lazyStaggeredGridState)
+        }
 
     }
 }
@@ -287,7 +302,7 @@ fun PageCard(header: String, body: String, timeDisplay: String, groupTitle: Stri
 
     Card(
         modifier = Modifier
-            .heightIn(min = 80.dp, max = 200.dp)
+            .heightIn(min = 80.dp)
             .fillMaxWidth()
             .shadow(elevation = 4.dp, shape = MaterialTheme.shapes.medium)
             .combinedClickable(
@@ -306,12 +321,12 @@ fun PageCard(header: String, body: String, timeDisplay: String, groupTitle: Stri
                 style = MaterialTheme.typography.labelSmall
             )
             Text(
-                text = header,
+                text = shortenText(header, 24),
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
                 style = MaterialTheme.typography.bodyMedium,
-                text = body
+                text = shortenText(body, 64)
             )
 
             if (displayGroup) {
@@ -384,12 +399,14 @@ fun PageSearchBar() {
         // Displaying filtered pages
         Column( modifier = Modifier.verticalScroll(rememberScrollState()) ) {
 
+            Spacer(modifier = Modifier.width(6.dp))
+
             filteredPages.forEach { page ->
                 val group = groupDao.getGroup(page.groupId).collectAsState(null).value
 
                 Card(
                     modifier = Modifier
-                        .heightIn(min = 80.dp, max = 100.dp)
+                        .heightIn(min = 80.dp)
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                         .shadow(elevation = 2.dp, shape = MaterialTheme.shapes.medium)
@@ -402,14 +419,20 @@ fun PageSearchBar() {
                             onLongClick = { pageOnClickEdit(page) }
                         )
                 ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                    ) {
-                        Text(text = page.title, style = TextStyle(fontWeight = FontWeight.Bold))
-                        Text(text = page.body, modifier = Modifier.padding(top = 2.dp))
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+
+                        Text(text = shortenText(page.title, 40),
+                            style = TextStyle(fontWeight = FontWeight.Bold)
+                        )
+
+                        Text(text = shortenText(page.body, 60),
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.width(6.dp))
 
         }
     }

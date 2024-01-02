@@ -1,5 +1,6 @@
 package app.regimen
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Spring
@@ -67,8 +68,13 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -83,10 +89,15 @@ import app.regimen.data.HabitDao
 import app.regimen.data.PageDao
 import app.regimen.data.RecurringReminderDao
 import app.regimen.data.SingleTimeReminderDao
+import app.regimen.screens.CreatePage
 import app.regimen.screens.GroupsScreen
 import app.regimen.screens.HomeScreen
 import app.regimen.screens.PagesScreen
 import app.regimen.screens.SettingsScreen
+import app.regimen.screens.SheetContentPages
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -654,4 +665,113 @@ fun Modifier.clickableWithoutRipple(
 fun formatLocalDateTime(localDateTime: LocalDateTime, pattern: String): String {
     val formatter = DateTimeFormatter.ofPattern(pattern)
     return localDateTime.format(formatter)
+}
+
+// Shorten text :l
+fun shortenText(text: String, maxLength: Int): String {
+    return if (text.length > maxLength) text.take(maxLength) + ".." else text
+}
+
+// Return int code and make toast depending on which errors
+@Composable
+fun validateTitleAndDescription(
+    title: String,
+    description: String,
+    titleMaxChar: Int,
+    descriptionMaxChar: Int
+): Int {
+    val context = LocalContext.current
+
+    // Default no error
+    var errorCode = 0
+
+    // Check title length
+    if (title.length > titleMaxChar) {
+        errorCode = 1
+        Toast.makeText(context, "Title is too long", Toast.LENGTH_SHORT).show()
+    }
+    // Check description length
+    else if (description.length > descriptionMaxChar) {
+        errorCode = 2
+        Toast.makeText(context, "Description is too long", Toast.LENGTH_SHORT).show()
+    }
+    // Check if title is empty
+    else if (title.isEmpty()) {
+        errorCode = 3
+        Toast.makeText(context, "Title cannot be empty", Toast.LENGTH_SHORT).show()
+    }
+
+    return errorCode
+}
+
+@Composable
+fun validateTimeAndDate(
+    date: String,
+    time: String,
+    specificTimeEnabled: Boolean
+): Int {
+    val context = LocalContext.current
+
+    // Default no error
+    var errorCode = 0
+
+    // Check date
+    if (date.isEmpty()) {
+        errorCode = 1
+        Toast.makeText(context, "Set a date", Toast.LENGTH_SHORT).show()
+    }
+    // Check time
+    else if (specificTimeEnabled && time.isEmpty()) {
+        errorCode = 2
+        Toast.makeText(context, "Set a time", Toast.LENGTH_SHORT).show()
+    }
+
+    return errorCode
+}
+
+@Composable
+fun validateCustomPeriod(
+    customPeriod: String,
+    customPeriodEnabled: Boolean
+): Int {
+    val context = LocalContext.current
+
+    // Default no error
+    var errorCode = 0
+
+    if (!customPeriodEnabled) {
+        return errorCode
+    }
+
+    // Check custom period
+    if (customPeriod.isEmpty()) {
+        errorCode = 1
+        Toast.makeText(context, "Period cannot be empty", Toast.LENGTH_SHORT).show()
+    } else if (customPeriod == "0") {
+        errorCode = 1
+        Toast.makeText(context, "Period cannot be 0", Toast.LENGTH_SHORT).show()
+    } else if(customPeriod.toInt() > 365) {
+        errorCode = 1
+        Toast.makeText(context, "Period cannot pass 365", Toast.LENGTH_SHORT).show()
+    }
+
+    return errorCode
+}
+
+@Composable
+fun validateGroupSelection(
+    groupId: Int
+): Int {
+    val context = LocalContext.current
+
+    // Default no error
+    var errorCode = 0
+
+    // Check group
+    if (groupId == -1) {
+        errorCode = 1
+        Toast.makeText(context, "Select a group", Toast.LENGTH_SHORT).show()
+    }
+
+    return errorCode
 }

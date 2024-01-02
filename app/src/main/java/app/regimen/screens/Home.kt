@@ -5,7 +5,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,9 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -31,18 +28,14 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.EventRepeat
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Today
@@ -96,23 +89,20 @@ import androidx.core.text.isDigitsOnly
 import app.regimen.ColorsEnum
 import app.regimen.DynamicScaffoldState
 import app.regimen.IconsEnum
+import app.regimen.MissingGroups
+import app.regimen.NoReminders
 import app.regimen.RemindMeRow
 import app.regimen.data.Group
 import app.regimen.data.Habit
-import app.regimen.data.HabitDao
-import app.regimen.data.Page
-import app.regimen.data.PageDao
 import app.regimen.data.RecurringReminder
-import app.regimen.data.RecurringReminderDao
 import app.regimen.data.Reminder
 import app.regimen.data.SingleTimeReminder
-import app.regimen.data.SingleTimeReminderDao
 import app.regimen.fadingEdge
 import app.regimen.formatLocalDateTime
 import app.regimen.groupDao
 import app.regimen.habitDao
-import app.regimen.pageDao
 import app.regimen.recurringReminderDao
+import app.regimen.shortenText
 import app.regimen.singleTimeReminderDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -205,7 +195,14 @@ fun HomeScreen(
             expandableFab = true,
             lazyListStateVisible = listFirstVisible,
             sheetDropdownDismissed = { setSheetVisibilityHome(false) },
-            bottomSheetBoxContent = { SheetContentHome.sheetContent() },
+            bottomSheetBoxContent = {
+                val groupList by groupDao.getAllGroups().collectAsState(initial = emptyList())
+                if (groupList.isEmpty()) {
+                    MissingGroups()
+                } else {
+                    SheetContentHome.sheetContent()
+                }
+            },
             showBottomSheet = sheetVisibility
         )
     )
@@ -225,8 +222,19 @@ fun HomeScreen(
         // Filter by reminder type
         CategoryFilterSegmented()
 
-        // Reminder cards scrollable column
-        LazyReminderColumn(lazyListState)
+        // Home main content of reminders
+        val singleRemindersState by singleTimeReminderDao.getAllSingleTimeReminders().collectAsState(initial = emptyList())
+        val recurringRemindersState by recurringReminderDao.getAllRecurringReminders().collectAsState(initial = emptyList())
+        val habitsState by habitDao.getAllHabits().collectAsState(initial = emptyList())
+
+        val combinedReminders = (singleRemindersState + recurringRemindersState + habitsState)
+
+        if (combinedReminders.isEmpty()) {
+            NoReminders()
+        } else {
+            LazyReminderColumn(lazyListState, combinedReminders)
+        }
+
     }
 
 }
@@ -272,12 +280,7 @@ fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit) {
 
 // Column for the reminder cards
 @Composable
-fun LazyReminderColumn(lazyListState: LazyListState) {
-    val singleRemindersState by singleTimeReminderDao.getAllSingleTimeReminders().collectAsState(initial = emptyList())
-    val recurringRemindersState by recurringReminderDao.getAllRecurringReminders().collectAsState(initial = emptyList())
-    val habitsState by habitDao.getAllHabits().collectAsState(initial = emptyList())
-
-    val combinedReminders = (singleRemindersState + recurringRemindersState + habitsState)
+fun LazyReminderColumn(lazyListState: LazyListState, combinedReminders: List<Reminder>) {
     val sortedReminders = combinedReminders.sortedBy { it.localDateTime }
 
     LazyColumn(
@@ -366,10 +369,9 @@ fun ReminderCard(type: String, title: String, timeDisplay: String, groupTitle: S
                  groupIconId: Int = -1, groupColorId: Int = -1, displayGroup: Boolean = true,
                  onClick: () -> Unit, onLongPress: () -> Unit
 ) {
-
     Card(
         modifier = Modifier
-            .heightIn(min = 110.dp, max = 150.dp)
+            .heightIn(min = 110.dp)
             .fillMaxWidth()
             .shadow(elevation = 4.dp, shape = MaterialTheme.shapes.medium)
             .combinedClickable(
@@ -395,7 +397,7 @@ fun ReminderCard(type: String, title: String, timeDisplay: String, groupTitle: S
             Text(
                 modifier = Modifier
                     .padding(top = 6.dp, bottom = 8.dp),
-                text = title,
+                text = shortenText(title, 38),
                 style = MaterialTheme.typography.titleLarge
             )
 
@@ -1602,3 +1604,4 @@ fun singleTimeOnClickEdit(singleTimeReminder: SingleTimeReminder) {
 
     setSheetVisibilityHome(true)
 }
+
