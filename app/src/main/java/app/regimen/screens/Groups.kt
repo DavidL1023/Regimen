@@ -33,6 +33,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -70,6 +71,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.regimen.ColorsEnum
@@ -90,6 +92,8 @@ import app.regimen.habitDao
 import app.regimen.pageDao
 import app.regimen.recurringReminderDao
 import app.regimen.singleTimeReminderDao
+import app.regimen.validateGroupSelection
+import app.regimen.validateTitleAndDescription
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -318,7 +322,8 @@ fun RemindersGroupTab() {
     val habitsState by habitDao.getAllHabits().collectAsState(initial = emptyList())
 
     val combinedReminders = (singleRemindersState + recurringRemindersState + habitsState)
-    val sortedReminders = combinedReminders.sortedBy { it.localDateTime }
+    val sortedReminders = combinedReminders
+        .sortedBy { it.localDateTime }
 
     LazyColumn(
         state = lazyListState,
@@ -336,7 +341,7 @@ fun RemindersGroupTab() {
         }
 
         items(sortedReminders) { reminder ->
-            if (reminder.groupId == selectedGroupId) { // Only show if contains selected group
+            if (reminder.groupId == selectedGroupId) { // Filtering sorted reminders causes crash so do this instead?
                 val format: String =
                     if (reminder.localDateTime.toLocalTime() == LocalTime.MIDNIGHT) {
                         "d MMM"
@@ -353,32 +358,34 @@ fun RemindersGroupTab() {
 
                 val group = groupDao.getGroup(reminder.groupId).collectAsState(null).value
 
-                ReminderCard(
-                    type = reminderType,
-                    title = reminder.title,
-                    timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
-                    displayGroup = false,
-                    onClick = {
-                        if (group != null) {
-                            reminderOnClickViewGroup(reminder, group)
-                        }
-                    },
-                    onLongPress = {
-                        when (reminder) {
-                            is Habit -> {
-                                habitOnClickEditGroup(reminder)
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    ReminderCard(
+                        type = reminderType,
+                        title = reminder.title,
+                        timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
+                        displayGroup = false,
+                        onClick = {
+                            if (group != null) {
+                                reminderOnClickViewGroup(reminder, group)
                             }
+                        },
+                        onLongPress = {
+                            when (reminder) {
+                                is Habit -> {
+                                    habitOnClickEditGroup(reminder)
+                                }
 
-                            is RecurringReminder -> {
-                                recurringOnClickEditGroup(reminder)
-                            }
+                                is RecurringReminder -> {
+                                    recurringOnClickEditGroup(reminder)
+                                }
 
-                            is SingleTimeReminder -> {
-                                singleTimeOnClickEditGroup(reminder)
+                                is SingleTimeReminder -> {
+                                    singleTimeOnClickEditGroup(reminder)
+                                }
                             }
                         }
-                    }
-                )
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
             }
@@ -405,7 +412,9 @@ fun PagesGroupTab() {
     val selectedGroupId = getSelectedGroupId()
 
     val pagesState by pageDao.getAllPages().collectAsState(initial = emptyList())
-    val sortedPages = pagesState.sortedBy { it.dateTimeModified }
+    val filteredSortedPages = pagesState
+        .filter { it.groupId == selectedGroupId }
+        .sortedBy { it.dateTimeModified }
 
     LazyVerticalStaggeredGrid(
         state = lazyStaggeredGridState,
@@ -425,23 +434,27 @@ fun PagesGroupTab() {
             }
         }
 
-        items(sortedPages) { page ->
-            if (page.groupId == selectedGroupId) { // Only show if contains selected group
-                val timeDisplay: String
-                val dateTimeModified = page.dateTimeModified
-                val currentTime = LocalDateTime.now()
+        itemsIndexed(filteredSortedPages) { index, page ->
+            val timeDisplay: String
+            val dateTimeModified = page.dateTimeModified
+            val currentTime = LocalDateTime.now()
 
-                timeDisplay =
-                    if (dateTimeModified.toLocalDate() == currentTime.toLocalDate()) { // Same day
-                        formatLocalDateTime(dateTimeModified, "'Today at' h:mm a")
-                    } else if (dateTimeModified.year != currentTime.year) { // Different year
-                        formatLocalDateTime(dateTimeModified, "MMM dd, yyyy")
-                    } else { // Same year different day
-                        formatLocalDateTime(dateTimeModified, "EEEE, MMM dd")
-                    }
+            timeDisplay =
+                if (dateTimeModified.toLocalDate() == currentTime.toLocalDate()) { // Same day
+                    formatLocalDateTime(dateTimeModified, "'Today at' h:mm a")
+                } else if (dateTimeModified.year != currentTime.year) { // Different year
+                    formatLocalDateTime(dateTimeModified, "MMM dd, yyyy")
+                } else { // Same year different day
+                    formatLocalDateTime(dateTimeModified, "EEEE, MMM dd")
+                }
 
-                val group = groupDao.getGroup(page.groupId).collectAsState(null).value
+            val group = groupDao.getGroup(page.groupId).collectAsState(null).value
 
+            Box(modifier = Modifier
+                .padding( // Add padding depending on the side its on
+                    start = if (index % 2 == 0) 16.dp else 0.dp,
+                    end = if (index % 2 != 0) 16.dp else 0.dp
+                )) {
                 PageCard(
                     header = page.title,
                     body = page.body,
@@ -455,7 +468,9 @@ fun PagesGroupTab() {
                     onLongPress = { pageOnClickEditGroup(page) }
                 )
             }
+
         }
+
 
         item(span = StaggeredGridItemSpan.FullLine) {
             Spacer(modifier = Modifier.height(16.dp))
@@ -579,10 +594,15 @@ fun CreateGroup(setTitle: String = "", setDescription: String = "", setColor: In
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        val context = LocalContext.current
+
         var title by remember { mutableStateOf(setTitle) }
         var description by remember { mutableStateOf(setDescription) }
         var color by remember { mutableIntStateOf(setColor)}
         var icon by remember { mutableIntStateOf(setIcon) }
+
+        val maxTitleChar = 100
+        val maxDescriptionChar = 10000
 
         // Explanation
         CreateTopExplanation(header = if(updateMode) "Edit group" else "Create group",
@@ -606,29 +626,36 @@ fun CreateGroup(setTitle: String = "", setDescription: String = "", setColor: In
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
-                CoroutineScope(Dispatchers.IO).launch {
-                    if (updateMode) {
-                        groupDao.getGroup(updateModeId).collect { group ->
-                            group.title = title
-                            group.description = description
-                            group.color = color
-                            group.icon = icon
+                // Validate data
+                val errorCodeOne = validateTitleAndDescription(title, description, maxTitleChar, maxDescriptionChar,
+                    context = context)
 
-                            groupDao.update(group)
-                        }
-                    } else {
-                        groupDao.insert(
-                            Group(
+                if (errorCodeOne==0) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        if (updateMode) {
+                            val updatedGroup = Group(
+                                id = updateModeId,
                                 title = title,
                                 description = description,
                                 color = color,
                                 icon = icon
                             )
-                        )
-                    }
 
+                            groupDao.update(updatedGroup)
+                        } else {
+                            groupDao.insert(
+                                Group(
+                                    title = title,
+                                    description = description,
+                                    color = color,
+                                    icon = icon
+                                )
+                            )
+                        }
+
+                    }
+                    setSheetVisibilityGroups(false)
                 }
-                setSheetVisibilityGroups(false)
             }
         ) {
             Text(
@@ -647,9 +674,9 @@ fun CreateGroup(setTitle: String = "", setDescription: String = "", setColor: In
                     modifier = Modifier.width(200.dp),
                     onClick = {
                         CoroutineScope(Dispatchers.IO).launch {
-                            groupDao.getGroup(updateModeId).collect { group ->
-                                groupDao.delete(group)
-                            }
+                            val groupDeleteById = Group(id = updateModeId)
+
+                            groupDao.delete(groupDeleteById)
                         }
                         // TODO delete all associated pages and reminders
                         setSheetVisibilityGroups(false)

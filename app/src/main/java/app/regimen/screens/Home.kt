@@ -81,6 +81,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -94,6 +95,7 @@ import app.regimen.NoReminders
 import app.regimen.RemindMeRow
 import app.regimen.data.Group
 import app.regimen.data.Habit
+import app.regimen.data.Page
 import app.regimen.data.RecurringReminder
 import app.regimen.data.Reminder
 import app.regimen.data.SingleTimeReminder
@@ -101,9 +103,14 @@ import app.regimen.fadingEdge
 import app.regimen.formatLocalDateTime
 import app.regimen.groupDao
 import app.regimen.habitDao
+import app.regimen.pageDao
 import app.regimen.recurringReminderDao
 import app.regimen.shortenText
 import app.regimen.singleTimeReminderDao
+import app.regimen.validateCustomPeriod
+import app.regimen.validateGroupSelection
+import app.regimen.validateTimeAndDate
+import app.regimen.validateTitleAndDescription
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -612,6 +619,7 @@ fun CreateHabit(setTitle: String = "", setDescription: String = "", setDate: Str
                 setTime: String = "", setGroupId: Int = -1, setSpecificTimeEnabled: Boolean = false,
                 setCustomPeriodEnabled: Boolean = false, setRecurringPeriod: String = "1",
                 setRecurringDay: String = "Mondays", updateMode: Boolean = false, updateModeId: Int = -1) {
+    val context = LocalContext.current
 
     var title by remember { mutableStateOf(setTitle) }
     var description by remember { mutableStateOf(setDescription) }
@@ -622,6 +630,9 @@ fun CreateHabit(setTitle: String = "", setDescription: String = "", setDate: Str
     var customPeriodEnabled by remember { mutableStateOf(setCustomPeriodEnabled) }
     var recurringPeriod by remember { mutableStateOf(setRecurringPeriod) }
     var recurringDay by remember { mutableStateOf(setRecurringDay) }
+
+    val maxTitleChar = 100
+    val maxDescriptionChar = 10000
 
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
@@ -680,27 +691,19 @@ fun CreateHabit(setTitle: String = "", setDescription: String = "", setDate: Str
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
-                val localDateTime = toLocalDateTime(date, time, specificTimeEnabled)
-                CoroutineScope(Dispatchers.IO).launch {
-                    if (updateMode) {
-                        habitDao.getHabit(updateModeId).collect { habit ->
-                            habit.title = title
-                            habit.groupId = groupId
-                            habit.specificTimeEnabled = specificTimeEnabled
-                            habit.localDateTime = localDateTime
-                            habit.description = description
+                // Validate data
+                val errorCodeOne = validateTitleAndDescription(title, description, maxTitleChar, maxDescriptionChar,
+                    context = context)
+                val errorCodeTwo = validateGroupSelection(groupId, context = context)
+                val errorCodeThree = validateTimeAndDate(date, time, specificTimeEnabled, context = context)
+                val errorCodeFour = validateCustomPeriod(recurringPeriod, customPeriodEnabled, context = context)
 
-                            habit.customPeriodEnabled = customPeriodEnabled
-                            habit.recurringPeriod = recurringPeriod.toInt()
-                            habit.recurringDay = recurringDay
-                            habit.streakActive = 0
-                            habit.streakHighest = 0
-
-                            habitDao.update(habit)
-                        }
-                    } else {
-                        habitDao.insert(
-                            Habit(
+                if (errorCodeOne==0 && errorCodeTwo==0 && errorCodeThree==0 && errorCodeFour==0) {
+                    val localDateTime = toLocalDateTime(date, time, specificTimeEnabled)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        if (updateMode) {
+                            val updatedHabit = Habit(
+                                id = updateModeId,
                                 title = title,
                                 groupId = groupId,
                                 specificTimeEnabled = specificTimeEnabled,
@@ -710,15 +713,33 @@ fun CreateHabit(setTitle: String = "", setDescription: String = "", setDate: Str
                                 customPeriodEnabled = customPeriodEnabled,
                                 recurringPeriod = recurringPeriod.toInt(),
                                 recurringDay = recurringDay,
-                                streakActive = 0,
+                                streakActive = 0, //TODO
                                 streakHighest = 0
                             )
-                        )
-                    }
 
+                            habitDao.update(updatedHabit)
+                        } else {
+                            habitDao.insert(
+                                Habit(
+                                    title = title,
+                                    groupId = groupId,
+                                    specificTimeEnabled = specificTimeEnabled,
+                                    localDateTime = localDateTime,
+                                    description = description,
+
+                                    customPeriodEnabled = customPeriodEnabled,
+                                    recurringPeriod = recurringPeriod.toInt(),
+                                    recurringDay = recurringDay,
+                                    streakActive = 0,
+                                    streakHighest = 0
+                                )
+                            )
+                        }
+
+                    }
+                    // Dismiss the sheet after checks
+                    setSheetVisibilityHome(false)
                 }
-                // Dismiss the sheet after checks
-                setSheetVisibilityHome(false)
             }
         ) {
             Text(
@@ -737,9 +758,9 @@ fun CreateHabit(setTitle: String = "", setDescription: String = "", setDate: Str
                     modifier = Modifier.width(200.dp),
                     onClick = {
                         CoroutineScope(Dispatchers.IO).launch {
-                            habitDao.getHabit(updateModeId).collect { habit ->
-                                habitDao.delete(habit)
-                            }
+                            val habitDeleteById = Habit(id = updateModeId)
+
+                            habitDao.delete(habitDeleteById)
                         }
 
                         setSheetVisibilityHome(false)
@@ -761,6 +782,7 @@ fun CreateRecurring(setTitle: String = "", setDescription: String = "", setDate:
                     setTime: String = "", setGroupId: Int = -1, setSpecificTimeEnabled: Boolean = false,
                     setCustomPeriodEnabled: Boolean = false, setRecurringPeriod: String = "1",
                     setRecurringDay: String = "Mondays", updateMode: Boolean = false, updateModeId: Int = -1) {
+    val context = LocalContext.current
 
     var title by remember { mutableStateOf(setTitle) }
     var description by remember { mutableStateOf(setDescription) }
@@ -771,6 +793,9 @@ fun CreateRecurring(setTitle: String = "", setDescription: String = "", setDate:
     var customPeriodEnabled by remember { mutableStateOf(setCustomPeriodEnabled) }
     var recurringPeriod by remember { mutableStateOf(setRecurringPeriod) }
     var recurringDay by remember { mutableStateOf(setRecurringDay) }
+
+    val maxTitleChar = 100
+    val maxDescriptionChar = 10000
 
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
@@ -829,25 +854,19 @@ fun CreateRecurring(setTitle: String = "", setDescription: String = "", setDate:
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
-                val localDateTime = toLocalDateTime(date, time, specificTimeEnabled)
-                CoroutineScope(Dispatchers.IO).launch {
-                    if (updateMode) {
-                        recurringReminderDao.getRecurringReminder(updateModeId).collect { reminder ->
-                            reminder.title = title
-                            reminder.groupId = groupId
-                            reminder.specificTimeEnabled = specificTimeEnabled
-                            reminder.localDateTime = localDateTime
-                            reminder.description = description
+                // Validate data
+                val errorCodeOne = validateTitleAndDescription(title, description, maxTitleChar, maxDescriptionChar,
+                    context = context)
+                val errorCodeTwo = validateGroupSelection(groupId, context = context)
+                val errorCodeThree = validateTimeAndDate(date, time, specificTimeEnabled, context = context)
+                val errorCodeFour = validateCustomPeriod(recurringPeriod, customPeriodEnabled, context = context)
 
-                            reminder.customPeriodEnabled = customPeriodEnabled
-                            reminder.recurringPeriod = recurringPeriod.toInt()
-                            reminder.recurringDay = recurringDay
-
-                            recurringReminderDao.update(reminder)
-                        }
-                    } else {
-                        recurringReminderDao.insert(
-                            RecurringReminder(
+                if (errorCodeOne==0 && errorCodeTwo==0 && errorCodeThree==0 && errorCodeFour==0) {
+                    val localDateTime = toLocalDateTime(date, time, specificTimeEnabled)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        if (updateMode) {
+                            val updatedRecurringReminder = RecurringReminder(
+                                id = updateModeId,
                                 title = title,
                                 groupId = groupId,
                                 specificTimeEnabled = specificTimeEnabled,
@@ -858,12 +877,28 @@ fun CreateRecurring(setTitle: String = "", setDescription: String = "", setDate:
                                 recurringPeriod = recurringPeriod.toInt(),
                                 recurringDay = recurringDay
                             )
-                        )
-                    }
 
+                            recurringReminderDao.update(updatedRecurringReminder)
+                        } else {
+                            recurringReminderDao.insert(
+                                RecurringReminder(
+                                    title = title,
+                                    groupId = groupId,
+                                    specificTimeEnabled = specificTimeEnabled,
+                                    localDateTime = localDateTime,
+                                    description = description,
+
+                                    customPeriodEnabled = customPeriodEnabled,
+                                    recurringPeriod = recurringPeriod.toInt(),
+                                    recurringDay = recurringDay
+                                )
+                            )
+                        }
+
+                    }
+                    // Dismiss the sheet after checks
+                    setSheetVisibilityHome(false)
                 }
-                // Dismiss the sheet after checks
-                setSheetVisibilityHome(false)
             }
         ) {
             Text(
@@ -882,9 +917,9 @@ fun CreateRecurring(setTitle: String = "", setDescription: String = "", setDate:
                     modifier = Modifier.width(200.dp),
                     onClick = {
                         CoroutineScope(Dispatchers.IO).launch {
-                            recurringReminderDao.getRecurringReminder(updateModeId).collect { recurring ->
-                                recurringReminderDao.delete(recurring)
-                            }
+                            val recurringDeleteById = RecurringReminder(id = updateModeId)
+
+                            recurringReminderDao.delete(recurringDeleteById)
                         }
 
                         setSheetVisibilityHome(false)
@@ -904,6 +939,7 @@ fun CreateRecurring(setTitle: String = "", setDescription: String = "", setDate:
 fun CreateSingleTime(setTitle: String = "", setDescription: String = "", setDate: String = "",
                      setTime: String = "", setGroupId: Int = -1, setSpecificTimeEnabled: Boolean = false,
                      updateMode: Boolean = false, updateModeId: Int = -1) {
+    val context = LocalContext.current
 
     var title by remember { mutableStateOf(setTitle) }
     var description by remember { mutableStateOf(setDescription) }
@@ -911,6 +947,9 @@ fun CreateSingleTime(setTitle: String = "", setDescription: String = "", setDate
     var groupId by remember { mutableIntStateOf(setGroupId) }
     var date by remember { mutableStateOf(setDate) }
     var time by remember { mutableStateOf(setTime) }
+
+    val maxTitleChar = 100
+    val maxDescriptionChar = 10000
 
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
@@ -959,33 +998,42 @@ fun CreateSingleTime(setTitle: String = "", setDescription: String = "", setDate
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
-                val localDateTime = toLocalDateTime(date, time, specificTimeEnabled)
-                CoroutineScope(Dispatchers.IO).launch {
-                    if(updateMode) {
-                        singleTimeReminderDao.getSingleTimeReminder(updateModeId).collect { reminder ->
-                            reminder.title = title
-                            reminder.groupId = groupId
-                            reminder.specificTimeEnabled = specificTimeEnabled
-                            reminder.localDateTime = localDateTime
-                            reminder.description = description
+                // Validate data
+                val errorCodeOne = validateTitleAndDescription(title, description, maxTitleChar, maxDescriptionChar,
+                    context = context)
+                val errorCodeTwo = validateGroupSelection(groupId, context = context)
+                val errorCodeThree = validateTimeAndDate(date, time, specificTimeEnabled, context = context)
 
-                            singleTimeReminderDao.update(reminder)
-                        }
-                    } else {
-                        singleTimeReminderDao.insert(
-                            SingleTimeReminder(
+                if (errorCodeOne==0 && errorCodeTwo==0 && errorCodeThree==0) {
+                    val localDateTime = toLocalDateTime(date, time, specificTimeEnabled)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        if (updateMode) {
+                            val updatedReminder = SingleTimeReminder(
+                                id = updateModeId,
                                 title = title,
                                 groupId = groupId,
                                 specificTimeEnabled = specificTimeEnabled,
                                 localDateTime = localDateTime,
                                 description = description
                             )
-                        )
-                    }
 
+                            singleTimeReminderDao.update(updatedReminder)
+                        } else {
+                            singleTimeReminderDao.insert(
+                                SingleTimeReminder(
+                                    title = title,
+                                    groupId = groupId,
+                                    specificTimeEnabled = specificTimeEnabled,
+                                    localDateTime = localDateTime,
+                                    description = description
+                                )
+                            )
+                        }
+
+                    }
+                    // Dismiss the sheet after checks
+                    setSheetVisibilityHome(false)
                 }
-                // Dismiss the sheet after checks
-                setSheetVisibilityHome(false)
             }
         ) {
             Text(
@@ -1004,9 +1052,9 @@ fun CreateSingleTime(setTitle: String = "", setDescription: String = "", setDate
                     modifier = Modifier.width(200.dp),
                     onClick = {
                         CoroutineScope(Dispatchers.IO).launch {
-                            singleTimeReminderDao.getSingleTimeReminder(updateModeId).collect { reminder ->
-                                singleTimeReminderDao.delete(reminder)
-                            }
+                            val reminderDeleteById = SingleTimeReminder(id = updateModeId)
+
+                            singleTimeReminderDao.delete(reminderDeleteById)
                         }
 
                         setSheetVisibilityHome(false)

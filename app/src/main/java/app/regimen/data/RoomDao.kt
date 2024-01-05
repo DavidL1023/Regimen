@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GroupDao {
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert
     suspend fun insert(group: Group)
 
     @Update
@@ -33,7 +33,7 @@ interface GroupDao {
 
 @Dao
 interface SingleTimeReminderDao {
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert
     suspend fun insert(reminder: SingleTimeReminder)
 
     @Update
@@ -52,7 +52,7 @@ interface SingleTimeReminderDao {
 
 @Dao
 interface RecurringReminderDao {
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert
     suspend fun insert(reminder: RecurringReminder)
 
     @Update
@@ -71,7 +71,7 @@ interface RecurringReminderDao {
 
 @Dao
 interface HabitDao {
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert
     suspend fun insert(habit: Habit)
 
     @Update
@@ -90,7 +90,7 @@ interface HabitDao {
 
 @Dao
 interface PageDao {
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert
     suspend fun insert(page: Page)
 
     @Update

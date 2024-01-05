@@ -65,6 +65,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -77,6 +78,8 @@ import app.regimen.formatLocalDateTime
 import app.regimen.groupDao
 import app.regimen.pageDao
 import app.regimen.shortenText
+import app.regimen.validateGroupSelection
+import app.regimen.validateTitleAndDescription
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -442,9 +445,14 @@ fun PageSearchBar() {
 @Composable
 fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: Int = -1,
                updateMode: Boolean = false, updateModeId: Int = -1) {
+    val context = LocalContext.current
+
     var title by remember { mutableStateOf(setTitle) }
     var description by remember { mutableStateOf(setDescription) }
     var groupId by remember { mutableIntStateOf(setGroupId) }
+
+    val maxTitleChar = 100
+    val maxDescriptionChar = 100000
 
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
@@ -472,34 +480,41 @@ fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: I
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
-                CoroutineScope(Dispatchers.IO).launch {
-                    val currentTime = LocalDateTime.now()
-                    if (updateMode) {
-                        pageDao.getPage(updateModeId).collect { page ->
-                            page.title = title
-                            page.groupId = groupId
-                            page.body = description
-                            page.dateTimeModified = currentTime
-                            // We don't edit dateTimeCreated
+                // Validate data
+                val errorCodeOne = validateTitleAndDescription(title, description, maxTitleChar, maxDescriptionChar,
+                    context = context)
+                val errorCodeTwo = validateGroupSelection(groupId, context = context)
 
-                            pageDao.update(page)
-                        }
-                    } else {
-                        pageDao.insert(
-                            Page(
+                if (errorCodeOne==0 && errorCodeTwo==0) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val currentTime = LocalDateTime.now()
+                        if (updateMode) {
+                            val updatedPage = Page(
+                                id = updateModeId,
                                 title = title,
                                 groupId = groupId,
                                 body = description,
                                 dateTimeModified = currentTime,
-                                dateTimeCreated = currentTime
+                                dateTimeCreated = currentTime //TODO
                             )
-                        )
+
+                            pageDao.update(updatedPage)
+                        } else {
+                            pageDao.insert(
+                                Page(
+                                    title = title,
+                                    groupId = groupId,
+                                    body = description,
+                                    dateTimeModified = currentTime,
+                                    dateTimeCreated = currentTime
+                                )
+                            )
+                        }
+
                     }
-
+                    // Dismiss the sheet after checks
+                    setSheetVisibilityPages(false)
                 }
-                // Dismiss the sheet after checks
-                setSheetVisibilityPages(false)
-
             }
         ) {
             Text(
@@ -518,9 +533,9 @@ fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: I
                     modifier = Modifier.width(200.dp),
                     onClick = {
                         CoroutineScope(Dispatchers.IO).launch {
-                            pageDao.getPage(updateModeId).collect { page ->
-                                pageDao.delete(page)
-                            }
+                            val pageDeleteById = Page(id = updateModeId)
+
+                            pageDao.delete(pageDeleteById)
                         }
 
                         setSheetVisibilityPages(false)
