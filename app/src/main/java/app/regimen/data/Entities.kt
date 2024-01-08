@@ -17,6 +17,7 @@ data class Group(
 )
 
 interface Reminder {
+    val id: Int
     val title: String
     val groupId: Int
     val specificTimeEnabled: Boolean
@@ -27,7 +28,7 @@ interface Reminder {
 @Entity(tableName = "single time reminders")
 data class SingleTimeReminder(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    override var id: Int = 0,
 
     override var title: String = "",
     override var groupId: Int = 0,
@@ -39,7 +40,7 @@ data class SingleTimeReminder(
 @Entity(tableName = "recurring reminders")
 data class RecurringReminder(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    override var id: Int = 0,
 
     override var title: String = "",
     override var groupId: Int = 0,
@@ -55,7 +56,7 @@ data class RecurringReminder(
 @Entity(tableName = "habits")
 data class Habit(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    override var id: Int = 0,
 
     override var title: String = "",
     override var groupId: Int = 0,

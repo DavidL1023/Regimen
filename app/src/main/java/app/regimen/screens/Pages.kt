@@ -1,5 +1,6 @@
 package app.regimen.screens
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -10,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -72,11 +74,18 @@ import androidx.compose.ui.unit.dp
 import app.regimen.DynamicScaffoldState
 import app.regimen.MissingGroups
 import app.regimen.NoPages
+import app.regimen.PageForList
+import app.regimen.PageOnClickEdit
+import app.regimen.PageOnClickView
+import app.regimen.ReminderOnClickView
+import app.regimen.SheetContent
 import app.regimen.data.Group
 import app.regimen.data.Page
 import app.regimen.formatLocalDateTime
 import app.regimen.groupDao
 import app.regimen.pageDao
+import app.regimen.raiseSheet
+import app.regimen.setSheetVisibility
 import app.regimen.shortenText
 import app.regimen.validateGroupSelection
 import app.regimen.validateTitleAndDescription
@@ -90,14 +99,6 @@ import java.time.format.DateTimeFormatter
 lateinit var setSelectedOptionText: (String) -> Unit
 lateinit var getSelectedOptionText: () -> String
 
-// Boolean for sheet visibility
-lateinit var setSheetVisibilityPages: (Boolean) -> Unit
-
-// Used to edit the content displayed when bottom sheet is visible
-object SheetContentPages {
-    var sheetContent: @Composable () -> Unit = { CreatePage() }
-}
-
 @Composable
 fun PagesScreen(
     onComposing: (DynamicScaffoldState) -> Unit
@@ -108,12 +109,6 @@ fun PagesScreen(
     // Set functions to modify option to sort by
     setSelectedOptionText = { selectedOptionText = it }
     getSelectedOptionText = { selectedOptionText }
-
-    // Show sheet
-    var sheetVisibility by remember { mutableStateOf(false) }
-
-    // Set functions to modify show sheet
-    setSheetVisibilityPages = { sheetVisibility = it }
 
     // Used to hide on scroll
     val lazyStaggeredGridState = rememberLazyStaggeredGridState()
@@ -129,27 +124,13 @@ fun PagesScreen(
             toolbarTitle = "Pages",
             toolbarSubtitle = "Store your thoughts.",
             toolbarActions = {
-                IconButton(onClick = { }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = null
-                    )
-                }
+                // If you want toolbar action
             },
             lazyStaggeredGridStateVisible = staggeredListFirstVisible,
-            bottomSheetBoxContent = {
-                val groupList by groupDao.getAllGroups().collectAsState(initial = emptyList())
-                if (groupList.isEmpty()) {
-                    MissingGroups()
-                } else {
-                    SheetContentPages.sheetContent()
+            mainFabClicked = {
+                raiseSheet {
+                    CreatePage()
                 }
-            },
-            showBottomSheet = sheetVisibility,
-            sheetDropdownDismissed = { setSheetVisibilityPages(false) },
-            showBottomSheetFabClicked = {
-                SheetContentPages.sheetContent = { CreatePage() }
-                sheetVisibility = true
             }
         )
     )
@@ -182,6 +163,7 @@ fun PagesScreen(
 }
 
 // Grid of pages
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
     // Retrieve the list of groups from the DAO
@@ -204,42 +186,18 @@ fun LazyPageGrid(lazyStaggeredGridState: LazyStaggeredGridState) {
         verticalItemSpacing = 8.dp
     ) {
 
-        item(span = StaggeredGridItemSpan.FullLine) {
+        item(span = StaggeredGridItemSpan.FullLine, key = "spacerBegin") {
             Spacer(modifier = Modifier.height(0.5.dp))
         }
 
-        items(sortedPages) { page ->
-            val timeDisplay: String
-            val dateTimeModified = page.dateTimeModified
-            val currentTime = LocalDateTime.now()
-
-            timeDisplay =
-                if (dateTimeModified.toLocalDate() == currentTime.toLocalDate()) { // Same day
-                    formatLocalDateTime(dateTimeModified, "'Today at' h:mm a")
-                } else if (dateTimeModified.year != currentTime.year) { // Different year
-                    formatLocalDateTime(dateTimeModified, "MMM dd, yyyy")
-                } else { // Same year different day
-                    formatLocalDateTime(dateTimeModified, "EEEE, MMM dd")
-                }
-
-            val group = groupDao.getGroup(page.groupId).collectAsState(null).value
-
-            if (group != null) {
-                PageCard(
-                    header = page.title,
-                    body = page.body,
-                    timeDisplay = timeDisplay,
-                    groupTitle = group.title,
-                    groupIconId = group.icon,
-                    groupColorId = group.color,
-                    onClick = { pageOnClickView(page, group) },
-                    onLongPress = { pageOnClickEdit(page) }
-                )
+        items(sortedPages, key = { page -> page.id }) { page ->
+            Box (modifier = Modifier.animateItemPlacement()) {
+                PageForList(page, true)
             }
         }
 
-        item(span = StaggeredGridItemSpan.FullLine) {
-            Spacer(modifier = Modifier.height(16.dp))
+        item(span = StaggeredGridItemSpan.FullLine, key = "spacerEnd") {
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }
@@ -402,7 +360,7 @@ fun PageSearchBar() {
         // Displaying filtered pages
         Column( modifier = Modifier.verticalScroll(rememberScrollState()) ) {
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             filteredPages.forEach { page ->
                 val group = groupDao.getGroup(page.groupId).collectAsState(null).value
@@ -416,10 +374,12 @@ fun PageSearchBar() {
                         .combinedClickable(
                             onClick = {
                                 if (group != null) {
-                                    pageOnClickView(page, group)
+                                    raiseSheet { PageOnClickView(page, group) }
                                 }
                             },
-                            onLongClick = { pageOnClickEdit(page) }
+                            onLongClick = {
+                                raiseSheet { PageOnClickEdit(page) }
+                            }
                         )
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -435,7 +395,7 @@ fun PageSearchBar() {
                 }
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.height(50.dp))
 
         }
     }
@@ -453,6 +413,14 @@ fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: I
 
     val maxTitleChar = 100
     val maxDescriptionChar = 100000
+
+    var dateTimeCreated = LocalDateTime.now()
+    if (updateMode) {
+        val page = pageDao.getPage(updateModeId).collectAsState(null).value
+        if (page != null) {
+            dateTimeCreated = page.dateTimeCreated
+        }
+    }
 
     Column (
         modifier = Modifier.padding(horizontal = 20.dp),
@@ -487,6 +455,7 @@ fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: I
 
                 if (errorCodeOne==0 && errorCodeTwo==0) {
                     CoroutineScope(Dispatchers.IO).launch {
+
                         val currentTime = LocalDateTime.now()
                         if (updateMode) {
                             val updatedPage = Page(
@@ -495,7 +464,7 @@ fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: I
                                 groupId = groupId,
                                 body = description,
                                 dateTimeModified = currentTime,
-                                dateTimeCreated = currentTime //TODO
+                                dateTimeCreated = dateTimeCreated // Database date time created
                             )
 
                             pageDao.update(updatedPage)
@@ -506,14 +475,14 @@ fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: I
                                     groupId = groupId,
                                     body = description,
                                     dateTimeModified = currentTime,
-                                    dateTimeCreated = currentTime
+                                    dateTimeCreated = dateTimeCreated // Current date time
                                 )
                             )
                         }
 
                     }
                     // Dismiss the sheet after checks
-                    setSheetVisibilityPages(false)
+                    setSheetVisibility(false)
                 }
             }
         ) {
@@ -524,6 +493,7 @@ fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: I
 
         // Delete button
         if (updateMode) {
+            var deleteConfirm by remember { mutableStateOf(false) }
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -532,17 +502,21 @@ fun CreatePage(setTitle: String = "", setDescription: String = "", setGroupId: I
                 Button(
                     modifier = Modifier.width(200.dp),
                     onClick = {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            val pageDeleteById = Page(id = updateModeId)
+                        if (deleteConfirm) {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                val pageDeleteById = Page(id = updateModeId)
 
-                            pageDao.delete(pageDeleteById)
+                                pageDao.delete(pageDeleteById)
+                            }
+
+                            setSheetVisibility(false)
+                        } else {
+                            deleteConfirm = true
                         }
-
-                        setSheetVisibilityPages(false)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text(text = "Delete")
+                    Text(text = if (deleteConfirm) "Confirm Delete" else "Delete")
                 }
             }
         }
@@ -619,33 +593,4 @@ fun ViewPage(title: String, description: String, localDateTime: LocalDateTime, g
 
         Spacer(modifier = Modifier.padding(vertical = 12.dp))
     }
-}
-
-fun pageOnClickView(page: Page, group: Group) {
-    SheetContentPages.sheetContent = {
-        ViewPage(
-            title = page.title,
-            description = page.body,
-            localDateTime = page.dateTimeModified,
-            groupTitle = group.title,
-            groupIconId = group.icon,
-            groupColorId = group.color
-        )
-    }
-
-    setSheetVisibilityPages(true)
-}
-
-fun pageOnClickEdit(page: Page) {
-    SheetContentPages.sheetContent = {
-        CreatePage(
-            setTitle = page.title,
-            setDescription = page.body,
-            setGroupId = page.groupId,
-            updateMode = true,
-            updateModeId = page.id
-        )
-    }
-
-    setSheetVisibilityPages(true)
 }

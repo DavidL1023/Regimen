@@ -49,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -89,12 +90,12 @@ import app.regimen.data.HabitDao
 import app.regimen.data.PageDao
 import app.regimen.data.RecurringReminderDao
 import app.regimen.data.SingleTimeReminderDao
+import app.regimen.screens.CreateGroup
 import app.regimen.screens.CreatePage
 import app.regimen.screens.GroupsScreen
 import app.regimen.screens.HomeScreen
 import app.regimen.screens.PagesScreen
 import app.regimen.screens.SettingsScreen
-import app.regimen.screens.SheetContentPages
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -108,6 +109,14 @@ lateinit var recurringReminderDao: RecurringReminderDao
 lateinit var habitDao: HabitDao
 lateinit var pageDao: PageDao
 
+// Sheet content controlled by screens
+object SheetContent {
+    var sheetContent: @Composable () -> Unit = { }
+}
+
+// Boolean for sheet visibility
+lateinit var setSheetVisibility: (Boolean) -> Unit
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(db: AppDatabase) {
@@ -116,6 +125,7 @@ fun MainScreen(db: AppDatabase) {
         mutableStateOf(DynamicScaffoldState())
     }
 
+    // Get dao objects
     groupDao = db.getGroupDao()
     singleTimeReminderDao = db.getSingleTimeReminderDao()
     recurringReminderDao = db.getRecurringReminderDao()
@@ -127,8 +137,11 @@ fun MainScreen(db: AppDatabase) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    // Bottom sheet toggle
-    var showBottomSheet by remember { mutableStateOf(false) }
+    // Show sheet
+    var sheetVisibility by remember { mutableStateOf(false) }
+
+    // Set functions to modify show sheet
+    setSheetVisibility = { sheetVisibility = it }
 
     // Background focus dim
     var toggledFocusDim by remember { mutableStateOf(false) }
@@ -163,10 +176,10 @@ fun MainScreen(db: AppDatabase) {
                     CustomFloatingActionButton(
                         expandable = dynamicScaffoldState.expandableFab,
                         onFabClick = {
-                            if (dynamicScaffoldState.expandableFab) {
+                            if (dynamicScaffoldState.expandableFab) { // Expandable fab handles itself in its own screen
                                 toggledFocusDim = !toggledFocusDim // Show/hide a dismissible dim on extendable fab click
                             } else {
-                                dynamicScaffoldState.showBottomSheetFabClicked()
+                                dynamicScaffoldState.mainFabClicked()
                             }
                         },
                         fabIcon = getFabIconForDestination(currentDestination),
@@ -174,19 +187,17 @@ fun MainScreen(db: AppDatabase) {
                             dynamicScaffoldState.fabBoxContent?.invoke(this, isExpanded)
                         },
                         toggledFocusDim = toggledFocusDim,
-                        showBottomSheet = showBottomSheet,
+                        showBottomSheet = sheetVisibility,
                         onFabBoxContentClick = { toggledFocusDim = false }
                     )
                 }
             }
         }
     ) {
-        // Show bottom sheet controlled by screens
-        showBottomSheet = dynamicScaffoldState.showBottomSheet
-
-        if (showBottomSheet) {
+        // Bottom sheet controlled by screens
+        if (sheetVisibility) {
             ModalBottomSheet(
-                onDismissRequest = { dynamicScaffoldState.sheetDropdownDismissed() }
+                onDismissRequest = { setSheetVisibility(false) }
             ) {
                 val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
                 val isKeyboardOpen by rememberUpdatedState(isImeVisible)
@@ -194,7 +205,13 @@ fun MainScreen(db: AppDatabase) {
                 // Sheet content
                 Column(modifier = Modifier.verticalScroll (rememberScrollState())){
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        dynamicScaffoldState.bottomSheetBoxContent.invoke(this)
+                        // Must have a group before displaying any sheet content unless adding a group
+                        val groupList by groupDao.getAllGroups().collectAsState(initial = emptyList())
+                        if (groupList.isEmpty() && ( currentDestination?.route != BottomBarScreen.Groups.route) ) {
+                            MissingGroups()
+                        } else {
+                            SheetContent.sheetContent()
+                        }
                     }
 
                     if (isKeyboardOpen) {
@@ -202,8 +219,6 @@ fun MainScreen(db: AppDatabase) {
                     }
                 }
             }
-        } else {
-            dynamicScaffoldState.sheetDropdownDismissed()
         }
 
         // MAIN NAV HOST
@@ -540,6 +555,10 @@ fun FlipIcon(
             dampingRatio = Spring.DampingRatioMediumBouncy
         )
     )
+
+    // Determine icon color based on Material Theme
+    val iconColor = MaterialTheme.colorScheme.onSurface
+
     Box(
         modifier = modifier
             .graphicsLayer { rotationY = animationRotation },
@@ -548,6 +567,7 @@ fun FlipIcon(
         Icon(
             rememberVectorPainter(image = if (animationRotation > 90f) activeIcon else inactiveIcon),
             contentDescription = contentDescription,
+            tint = iconColor
         )
     }
 }
@@ -624,10 +644,7 @@ data class DynamicScaffoldState(
     val expandableFab: Boolean = false,
     val lazyListStateVisible: Boolean? = null,
     val lazyStaggeredGridStateVisible: Boolean? = null,
-    val sheetDropdownDismissed: () -> Unit = {},
-    val bottomSheetBoxContent: (@Composable BoxScope.() -> Unit) = {},
-    val showBottomSheet: Boolean = false,
-    val showBottomSheetFabClicked: () -> Unit = {}
+    val mainFabClicked: () -> Unit = {}
 )
 
 // Fab button icon
@@ -672,3 +689,10 @@ fun shortenText(text: String, maxLength: Int): String {
     return if (text.length > maxLength) text.take(maxLength) + ".." else text
 }
 
+fun raiseSheet(composable: @Composable () -> Unit) {
+    SheetContent.sheetContent = {
+        composable()
+    }
+
+    setSheetVisibility(true)
+}

@@ -1,5 +1,6 @@
 package app.regimen.screens
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
@@ -35,10 +36,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircleOutline
 import androidx.compose.material.icons.filled.EventRepeat
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Keyboard
@@ -50,9 +55,12 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
+import androidx.compose.material3.LocalMinimumTouchTargetEnforcement
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -67,6 +75,8 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -89,10 +99,16 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.text.isDigitsOnly
 import app.regimen.ColorsEnum
 import app.regimen.DynamicScaffoldState
+import app.regimen.HabitOnClickEdit
 import app.regimen.IconsEnum
 import app.regimen.MissingGroups
 import app.regimen.NoReminders
+import app.regimen.RecurringOnClickEdit
 import app.regimen.RemindMeRow
+import app.regimen.ReminderForList
+import app.regimen.ReminderOnClickView
+import app.regimen.SheetContent
+import app.regimen.SingleTimeOnClickEdit
 import app.regimen.data.Group
 import app.regimen.data.Habit
 import app.regimen.data.Page
@@ -104,7 +120,9 @@ import app.regimen.formatLocalDateTime
 import app.regimen.groupDao
 import app.regimen.habitDao
 import app.regimen.pageDao
+import app.regimen.raiseSheet
 import app.regimen.recurringReminderDao
+import app.regimen.setSheetVisibility
 import app.regimen.shortenText
 import app.regimen.singleTimeReminderDao
 import app.regimen.validateCustomPeriod
@@ -113,13 +131,19 @@ import app.regimen.validateTimeAndDate
 import app.regimen.validateTitleAndDescription
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.forEach
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
+import java.time.temporal.TemporalAdjusters
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -136,18 +160,11 @@ lateinit var getSelectedChipIndex: () -> Int
 lateinit var setSelectedSegmentText: (String) -> Unit
 lateinit var getSelectedSegmentText: () -> String
 
-// Boolean for sheet visibility
-lateinit var setSheetVisibilityHome: (Boolean) -> Unit
-
-// Used to edit the content displayed when bottom sheet is visible
-object SheetContentHome {
-    var sheetContent: @Composable () -> Unit = { }
-}
-
 @Composable
 fun HomeScreen(
     onComposing: (DynamicScaffoldState) -> Unit
 ) {
+
     // The selected date / index to filter by
     var selectedChipDate by remember { mutableStateOf<LocalDate?>(null) }
     var selectedChipIndex by remember { mutableIntStateOf(-1) }
@@ -166,12 +183,6 @@ fun HomeScreen(
     setSelectedSegmentText = { selectedSegmentText = it }
     getSelectedSegmentText = { selectedSegmentText }
 
-    // Show sheet
-    var sheetVisibility by remember { mutableStateOf(false) }
-
-    // Set functions to modify show sheet
-    setSheetVisibilityHome = { sheetVisibility = it }
-
     // Used to hide on scroll
     val lazyListState = rememberLazyListState()
     val listFirstVisible by remember(lazyListState) {
@@ -186,31 +197,15 @@ fun HomeScreen(
             toolbarTitle = "Home",
             toolbarSubtitle = "Manage your life.",
             toolbarActions = {
-                IconButton(onClick = { }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = null
-                    )
-                }
+                // If you want toolbar action
             },
             fabBoxContent = { isExpanded ->
                 HomeScreenFabBox(
-                    isExpanded = isExpanded,
-                    onFabItemClick = { setSheetVisibilityHome(true) }
+                    isExpanded = isExpanded
                 )
             },
             expandableFab = true,
-            lazyListStateVisible = listFirstVisible,
-            sheetDropdownDismissed = { setSheetVisibilityHome(false) },
-            bottomSheetBoxContent = {
-                val groupList by groupDao.getAllGroups().collectAsState(initial = emptyList())
-                if (groupList.isEmpty()) {
-                    MissingGroups()
-                } else {
-                    SheetContentHome.sheetContent()
-                }
-            },
-            showBottomSheet = sheetVisibility
+            lazyListStateVisible = listFirstVisible
         )
     )
 
@@ -248,15 +243,16 @@ fun HomeScreen(
 
 // Expandable box for when fab is clicked on home screen
 @Composable
-fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit) {
+fun HomeScreenFabBox(isExpanded: Boolean) {
     Column {
         RemindMeRow(
             icon = Icons.Filled.SelfImprovement,
             text = "Habit",
             isExpanded = isExpanded,
             onClick = {
-                onFabItemClick()
-                SheetContentHome.sheetContent = { CreateHabit() }
+                raiseSheet {
+                    CreateHabit()
+                }
             },
             enterDelay = 500
         )
@@ -266,8 +262,9 @@ fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit) {
             text = "Recurring",
             isExpanded = isExpanded,
             onClick = {
-                onFabItemClick()
-                SheetContentHome.sheetContent = { CreateRecurring() }
+                raiseSheet {
+                    CreateRecurring()
+                }
             },
             enterDelay = 350
         )
@@ -277,15 +274,44 @@ fun HomeScreenFabBox(isExpanded: Boolean, onFabItemClick: () -> Unit) {
             text = "Single Time",
             isExpanded = isExpanded,
             onClick = {
-                onFabItemClick()
-                SheetContentHome.sheetContent = { CreateSingleTime() }
+                raiseSheet {
+                    CreateSingleTime()
+                }
             },
             enterDelay = 200
         )
     }
 }
 
+// Get next occurrence of day depending on day as string format
+fun getNextOccurrenceOfDay(localDateTime: LocalDateTime, dayString: String): LocalDateTime {
+    val dayOfWeek = when (dayString) {
+        "Mondays" -> DayOfWeek.MONDAY
+        "Tuesdays" -> DayOfWeek.TUESDAY
+        "Wednesdays" -> DayOfWeek.WEDNESDAY
+        "Thursdays" -> DayOfWeek.THURSDAY
+        "Fridays" -> DayOfWeek.FRIDAY
+        "Saturdays" -> DayOfWeek.SATURDAY
+        "Sundays" -> DayOfWeek.SUNDAY
+        else -> throw IllegalArgumentException("Invalid day of week")
+    }
+    return localDateTime.with(TemporalAdjusters.next(dayOfWeek))
+}
+
+// Always generates unique key from reminders which may share id numbers in Room
+fun getUniqueKey(reminder: Reminder): String {
+    val key = when (reminder) {
+        is SingleTimeReminder -> "${reminder.id}_SingleTimeReminder"
+        is RecurringReminder -> "${reminder.id}_RecurringReminder"
+        is Habit -> "${reminder.id}_Habit"
+        else -> "Unknown_${reminder.id}"
+    }
+
+    return key
+}
+
 // Column for the reminder cards
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LazyReminderColumn(lazyListState: LazyListState, combinedReminders: List<Reminder>) {
     val sortedReminders = combinedReminders.sortedBy { it.localDateTime }
@@ -297,84 +323,54 @@ fun LazyReminderColumn(lazyListState: LazyListState, combinedReminders: List<Rem
             .padding(horizontal = 16.dp)
     ) {
 
-        item {
+        item(key = "spacerBegin") {
             Spacer(modifier = Modifier.height(1.dp))
         }
 
-        items(sortedReminders) { reminder ->
-            val group = groupDao.getGroup(reminder.groupId).collectAsState(null).value
-            if (group != null) {
-
-                val format: String =
-                    if (reminder.localDateTime.toLocalTime() == LocalTime.MIDNIGHT) {
-                        "d MMM"
-                    } else {
-                        "d MMM · h:mm a"
-                    }
-
-                val reminderType = when (reminder) {
-                    is SingleTimeReminder -> "Single Time"
-                    is RecurringReminder -> "Recurring"
-                    is Habit -> "Habit"
-                    else -> "Unknown"
-                }
-
-                val passesSegmentFilter = when (getSelectedSegmentText()) {
-                    "All" -> true
-                    "Repeating" -> reminderType == "Habit" || reminderType == "Recurring"
-                    "Single Time" -> reminderType == "Single Time"
-                    else -> true
-                }
-
-                val chipDate = getSelectedChipDate()
-                val passesChipDateFilter =
-                    chipDate?.let { reminder.localDateTime.toLocalDate() == getSelectedChipDate() }
-                        ?: true
-
-                if (passesSegmentFilter && passesChipDateFilter) {
-                    ReminderCard(
-                        type = reminderType,
-                        title = reminder.title,
-                        timeDisplay = formatLocalDateTime(reminder.localDateTime, format),
-                        groupTitle = group.title,
-                        groupIconId = group.icon,
-                        groupColorId = group.color,
-                        onClick = { reminderOnClickView(reminder, group) },
-                        onLongPress = {
-                            when (reminder) {
-                                is Habit -> {
-                                    habitOnClickEdit(reminder)
-                                }
-
-                                is RecurringReminder -> {
-                                    recurringOnClickEdit(reminder)
-                                }
-
-                                is SingleTimeReminder -> {
-                                    singleTimeOnClickEdit(reminder)
-                                }
-                            }
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-
+        items(sortedReminders, key = { reminder -> getUniqueKey(reminder) }) { reminder ->
+            val reminderType = when (reminder) {
+                is SingleTimeReminder -> "Single Time"
+                is RecurringReminder -> "Recurring"
+                is Habit -> "Habit"
+                else -> "Unknown"
             }
+
+            val reminderDate = reminder.localDateTime.toLocalDate()
+
+            val passesSegmentFilter = when (getSelectedSegmentText()) {
+                "All" -> true
+                "Repeating" -> reminderType == "Habit" || reminderType == "Recurring"
+                "Single Time" -> reminderType == "Single Time"
+                else -> true
+            }
+
+            val chipDate = getSelectedChipDate()
+            val passesChipDateFilter =
+                chipDate?.let { reminderDate == getSelectedChipDate() }
+                    ?: true
+
+            if (passesSegmentFilter && passesChipDateFilter) {
+                Box(modifier = Modifier.animateItemPlacement()) {
+                    ReminderForList(reminder, true)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
+        item(key = "spacerEnd") {
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }
 
 // A reminder card
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ReminderCard(type: String, title: String, timeDisplay: String, groupTitle: String = "",
                  groupIconId: Int = -1, groupColorId: Int = -1, displayGroup: Boolean = true,
-                 onClick: () -> Unit, onLongPress: () -> Unit
+                 onClick: () -> Unit, onLongPress: () -> Unit, late: Boolean = false, due: Boolean = false,
+                 habitMode: Boolean = false, habitCurrentStreak: Int = 0, completeOnClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -388,19 +384,44 @@ fun ReminderCard(type: String, title: String, timeDisplay: String, groupTitle: S
     ) {
         Column(
             modifier = Modifier.padding(12.dp)
-        )  {
+        ) {
 
-            Text(
-                modifier = Modifier
-                    .background(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        CircleShape
-                    ) // Oval background
-                    .padding(8.dp), // Padding for the oval background
-                text = type,
-                style = MaterialTheme.typography.labelMedium
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            CircleShape
+                        ) // Oval background
+                        .padding(8.dp), // Padding for the oval background
+                    text = type,
+                    style = MaterialTheme.typography.labelMedium
+                )
 
+                if (habitMode) {
+                    Row( // Habit streak visual
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Whatshot,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+
+                        Text(
+                            text = "$habitCurrentStreak",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+            }
+
+            // Title and below
             Text(
                 modifier = Modifier
                     .padding(top = 6.dp, bottom = 8.dp),
@@ -412,24 +433,53 @@ fun ReminderCard(type: String, title: String, timeDisplay: String, groupTitle: S
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val coloredByDate = if (late) MaterialTheme.colorScheme.error
+                            else if (due) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                 Icon(
                     imageVector = Icons.Outlined.CalendarMonth,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
+                    tint = coloredByDate
                 )
 
                 Text(
                     text = timeDisplay, //16 Feb · 11:00 PM
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = coloredByDate
                 )
             }
 
             if (displayGroup) {
-                Spacer(modifier = Modifier.padding(vertical = 6.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                ) {
 
-                DisplayGroup(groupName = groupTitle, iconId = groupIconId, colorId = groupColorId)
+                    DisplayGroup(
+                        groupName = groupTitle,
+                        iconId = groupIconId,
+                        colorId = groupColorId
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
+                        IconButton(
+                            onClick = { completeOnClick() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                }
 
             }
+
         }
     }
 }
@@ -618,7 +668,8 @@ fun toLocalDateTime(date: String, time: String, specificTimeEnabled: Boolean): L
 fun CreateHabit(setTitle: String = "", setDescription: String = "", setDate: String = "",
                 setTime: String = "", setGroupId: Int = -1, setSpecificTimeEnabled: Boolean = false,
                 setCustomPeriodEnabled: Boolean = false, setRecurringPeriod: String = "1",
-                setRecurringDay: String = "Mondays", updateMode: Boolean = false, updateModeId: Int = -1) {
+                setRecurringDay: String = "Mondays", updateMode: Boolean = false, updateModeId: Int = -1,
+                streakActive: Int = 0, streakHighest: Int = 0) {
     val context = LocalContext.current
 
     var title by remember { mutableStateOf(setTitle) }
@@ -713,8 +764,8 @@ fun CreateHabit(setTitle: String = "", setDescription: String = "", setDate: Str
                                 customPeriodEnabled = customPeriodEnabled,
                                 recurringPeriod = recurringPeriod.toInt(),
                                 recurringDay = recurringDay,
-                                streakActive = 0, //TODO
-                                streakHighest = 0
+                                streakActive = streakActive,
+                                streakHighest = streakHighest
                             )
 
                             habitDao.update(updatedHabit)
@@ -730,15 +781,15 @@ fun CreateHabit(setTitle: String = "", setDescription: String = "", setDate: Str
                                     customPeriodEnabled = customPeriodEnabled,
                                     recurringPeriod = recurringPeriod.toInt(),
                                     recurringDay = recurringDay,
-                                    streakActive = 0,
-                                    streakHighest = 0
+                                    streakActive = streakActive,
+                                    streakHighest = streakHighest
                                 )
                             )
                         }
 
                     }
                     // Dismiss the sheet after checks
-                    setSheetVisibilityHome(false)
+                    setSheetVisibility(false)
                 }
             }
         ) {
@@ -749,6 +800,7 @@ fun CreateHabit(setTitle: String = "", setDescription: String = "", setDate: Str
 
         // Delete button
         if (updateMode) {
+            var deleteConfirm by remember { mutableStateOf(false) }
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -757,17 +809,21 @@ fun CreateHabit(setTitle: String = "", setDescription: String = "", setDate: Str
                 Button(
                     modifier = Modifier.width(200.dp),
                     onClick = {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            val habitDeleteById = Habit(id = updateModeId)
+                        if (deleteConfirm) {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                val habitDeleteById = Habit(id = updateModeId)
 
-                            habitDao.delete(habitDeleteById)
+                                habitDao.delete(habitDeleteById)
+                            }
+
+                            setSheetVisibility(false)
+                        } else {
+                            deleteConfirm = true
                         }
-
-                        setSheetVisibilityHome(false)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text(text = "Delete")
+                    Text(text = if (deleteConfirm) "Confirm Delete" else "Delete")
                 }
             }
         }
@@ -803,7 +859,7 @@ fun CreateRecurring(setTitle: String = "", setDescription: String = "", setDate:
     ) {
         // Explanation
         CreateTopExplanation(header = if(updateMode) "Edit Recurring" else "New Recurring",
-            subtitle = "Recurring reminder that will continue to reapply after completion, can be paused to continue at a later date.")
+            subtitle = "Recurring reminder that will continue to reapply after completion.")
 
         // Enter title and description
         CreateTitleAndDescription(
@@ -897,7 +953,7 @@ fun CreateRecurring(setTitle: String = "", setDescription: String = "", setDate:
 
                     }
                     // Dismiss the sheet after checks
-                    setSheetVisibilityHome(false)
+                    setSheetVisibility(false)
                 }
             }
         ) {
@@ -908,6 +964,7 @@ fun CreateRecurring(setTitle: String = "", setDescription: String = "", setDate:
 
         // Delete button
         if (updateMode) {
+            var deleteConfirm by remember { mutableStateOf(false) }
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -916,17 +973,20 @@ fun CreateRecurring(setTitle: String = "", setDescription: String = "", setDate:
                 Button(
                     modifier = Modifier.width(200.dp),
                     onClick = {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            val recurringDeleteById = RecurringReminder(id = updateModeId)
+                        if (deleteConfirm) {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                val recurringDeleteById = RecurringReminder(id = updateModeId)
 
-                            recurringReminderDao.delete(recurringDeleteById)
+                                recurringReminderDao.delete(recurringDeleteById)
+                            }
+                            setSheetVisibility(false)
+                        } else {
+                            deleteConfirm = true
                         }
-
-                        setSheetVisibilityHome(false)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text(text = "Delete")
+                    Text(text = if (deleteConfirm) "Confirm Delete" else "Delete")
                 }
             }
         }
@@ -1032,7 +1092,7 @@ fun CreateSingleTime(setTitle: String = "", setDescription: String = "", setDate
 
                     }
                     // Dismiss the sheet after checks
-                    setSheetVisibilityHome(false)
+                    setSheetVisibility(false)
                 }
             }
         ) {
@@ -1043,6 +1103,7 @@ fun CreateSingleTime(setTitle: String = "", setDescription: String = "", setDate
 
         // Delete button
         if (updateMode) {
+            var deleteConfirm by remember { mutableStateOf(false) }
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -1051,17 +1112,20 @@ fun CreateSingleTime(setTitle: String = "", setDescription: String = "", setDate
                 Button(
                     modifier = Modifier.width(200.dp),
                     onClick = {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            val reminderDeleteById = SingleTimeReminder(id = updateModeId)
+                        if (deleteConfirm) {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                val reminderDeleteById = SingleTimeReminder(id = updateModeId)
 
-                            singleTimeReminderDao.delete(reminderDeleteById)
+                                singleTimeReminderDao.delete(reminderDeleteById)
+                            }
+                            setSheetVisibility(false)
+                        } else {
+                            deleteConfirm = true
                         }
-
-                        setSheetVisibilityHome(false)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text(text = "Delete")
+                    Text(text = if (deleteConfirm) "Confirm Delete" else "Delete")
                 }
             }
         }
@@ -1489,7 +1553,8 @@ fun LabelledCheckBox(
 
 @Composable
 fun ViewReminder(type: String, title: String, description: String, localDateTime: LocalDateTime,
-                        groupTitle: String, groupIconId: Int, groupColorId: Int
+                        groupTitle: String, groupIconId: Int, groupColorId: Int,
+                 habitMode: Boolean = false, habitCurrentStreak: Int = 0, habitHighestStreak: Int = 0
 ) {
 
     val format: String =
@@ -1508,16 +1573,61 @@ fun ViewReminder(type: String, title: String, description: String, localDateTime
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
 
-            Text(
-                modifier = Modifier
-                    .background(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        CircleShape
-                    ) // Oval background
-                    .padding(8.dp), // Padding for the oval background
-                text = type,
-                style = MaterialTheme.typography.labelMedium
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            CircleShape
+                        ) // Oval background
+                        .padding(8.dp), // Padding for the oval background
+                    text = type,
+                    style = MaterialTheme.typography.labelMedium
+                )
+
+                if (habitMode) {
+                    Column () {
+
+                        Row( // Highest habit streak visual
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.LocalFireDepartment,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+
+                            Text(
+                                text = "Highest: $habitHighestStreak days",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+
+                        Row( // Habit streak visual
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Whatshot,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+
+                            Text(
+                                text = "Current: $habitCurrentStreak days",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+
+                    }
+
+                }
+            }
 
             Text(
                 text = title,
@@ -1551,105 +1661,3 @@ fun ViewReminder(type: String, title: String, description: String, localDateTime
         Spacer(modifier = Modifier.padding(vertical = 12.dp))
     }
 }
-
-fun reminderOnClickView(reminder: Reminder, group: Group) {
-    val type: String = when (reminder) {
-        is Habit -> { "Habit" }
-
-        is RecurringReminder -> { "Recurring" }
-
-        is SingleTimeReminder -> { "Single Time" }
-
-        else -> {"Unknown"}
-    }
-
-    SheetContentHome.sheetContent = {
-        ViewReminder(
-            type = type,
-            title = reminder.title,
-            description = reminder.description,
-            localDateTime = reminder.localDateTime,
-            groupTitle = group.title,
-            groupIconId = group.icon,
-            groupColorId = group.color
-        )
-    }
-
-    setSheetVisibilityHome(true)
-}
-
-fun habitOnClickEdit(habit: Habit) {
-    val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
-    val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
-
-    val date = habit.localDateTime.format(dateFormatter)
-    val time = habit.localDateTime.format(timeFormatter)
-
-    SheetContentHome.sheetContent = {
-        CreateHabit(
-            setTitle = habit.title,
-            setDescription = habit.description,
-            setDate = date,
-            setTime = time,
-            setGroupId = habit.groupId,
-            setSpecificTimeEnabled = habit.specificTimeEnabled,
-            setCustomPeriodEnabled = habit.customPeriodEnabled,
-            setRecurringPeriod = habit.recurringPeriod.toString(),
-            setRecurringDay = habit.recurringDay,
-            updateMode = true,
-            updateModeId = habit.id
-        )
-    }
-
-    setSheetVisibilityHome(true)
-}
-
-fun recurringOnClickEdit(recurringReminder: RecurringReminder) {
-    val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
-    val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
-
-    val date = recurringReminder.localDateTime.format(dateFormatter)
-    val time = recurringReminder.localDateTime.format(timeFormatter)
-
-    SheetContentHome.sheetContent = {
-        CreateRecurring(
-            setTitle = recurringReminder.title,
-            setDescription = recurringReminder.description,
-            setDate = date,
-            setTime = time,
-            setGroupId = recurringReminder.groupId,
-            setSpecificTimeEnabled = recurringReminder.specificTimeEnabled,
-            setCustomPeriodEnabled = recurringReminder.customPeriodEnabled,
-            setRecurringPeriod = recurringReminder.recurringPeriod.toString(),
-            setRecurringDay = recurringReminder.recurringDay,
-            updateMode = true,
-            updateModeId = recurringReminder.id
-        )
-    }
-
-    setSheetVisibilityHome(true)
-}
-
-fun singleTimeOnClickEdit(singleTimeReminder: SingleTimeReminder) {
-    val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
-    val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
-
-    val date = singleTimeReminder.localDateTime.format(dateFormatter)
-    val time = singleTimeReminder.localDateTime.format(timeFormatter)
-
-    SheetContentHome.sheetContent = {
-        CreateSingleTime(
-            setTitle = singleTimeReminder.title,
-            setDescription = singleTimeReminder.description,
-            setDate = date,
-            setTime = time,
-            setGroupId = singleTimeReminder.groupId,
-            setSpecificTimeEnabled = singleTimeReminder.specificTimeEnabled,
-            updateMode = true,
-            updateModeId = singleTimeReminder.id
-        )
-    }
-
-    setSheetVisibilityHome(true)
-}
-

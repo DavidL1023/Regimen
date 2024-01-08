@@ -42,6 +42,9 @@ interface SingleTimeReminderDao {
     @Delete
     suspend fun delete(reminder: SingleTimeReminder)
 
+    @Query("DELETE FROM `single time reminders` WHERE groupId = :groupId")
+    suspend fun deleteSingleTimeRemindersByGroupId(groupId: Int)
+
     @Query("SELECT * FROM `single time reminders` WHERE id = :id")
     fun getSingleTimeReminder(id: Int): Flow<SingleTimeReminder>
 
@@ -60,6 +63,9 @@ interface RecurringReminderDao {
 
     @Delete
     suspend fun delete(reminder: RecurringReminder)
+
+    @Query("DELETE FROM `recurring reminders` WHERE groupId = :groupId")
+    suspend fun deleteRecurringRemindersByGroupId(groupId: Int)
 
     @Query("SELECT * FROM `recurring reminders` WHERE id = :id")
     fun getRecurringReminder(id: Int): Flow<RecurringReminder>
@@ -80,6 +86,9 @@ interface HabitDao {
     @Delete
     suspend fun delete(habit: Habit)
 
+    @Query("DELETE FROM habits WHERE groupId = :groupId")
+    suspend fun deleteHabitsByGroupId(groupId: Int)
+
     @Query("SELECT * FROM habits WHERE id = :id")
     fun getHabit(id: Int): Flow<Habit>
 
@@ -98,6 +107,9 @@ interface PageDao {
 
     @Delete
     suspend fun delete(page: Page)
+
+    @Query("DELETE FROM pages WHERE groupId = :groupId")
+    suspend fun deletePagesByGroupId(groupId: Int)
 
     @Query("SELECT * FROM pages WHERE id = :id")
     fun getPage(id: Int): Flow<Page>
