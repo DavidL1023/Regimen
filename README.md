@@ -9,6 +9,6 @@ Seamlessly blends reminders, habit tracking, note-taking, and organization into 
 ## Installation
 Download APK here
 
-[Regimen: Build Habits]()
+[Regimen: Build Habits](https://drive.google.com/file/d/1Ud7rKavuo0MqXsRpzkYIM6vPWka9J-p2/view?usp=sharing)
 
 Android studio used for development
