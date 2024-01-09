@@ -314,12 +314,10 @@ fun RemindersGroupTab() {
         items(sortedFilteredReminders, key = { reminder -> getUniqueKey(reminder) }) { reminder ->
             Box(modifier = Modifier
                 .animateItemPlacement()
-                .padding(horizontal = 16.dp)
+                .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
             ) {
                 ReminderForList(reminder, displayGroup = false)
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
         }
 
 

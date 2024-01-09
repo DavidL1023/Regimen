@@ -338,11 +338,12 @@ fun LazyReminderColumn(lazyListState: LazyListState, combinedReminders: List<Rem
 
         items(sortedFilteredReminders, key = { reminder -> getUniqueKey(reminder) }) { reminder ->
 
-            Box(modifier = Modifier.animateItemPlacement()) {
+            Box(modifier = Modifier
+                .animateItemPlacement()
+                .padding(bottom = 12.dp)) {
                 ReminderForList(reminder, true)
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
         }
 
         item(key = "spacerEnd") {
