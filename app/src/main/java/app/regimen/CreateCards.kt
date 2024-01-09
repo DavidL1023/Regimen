@@ -1,14 +1,9 @@
 package app.regimen
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import app.regimen.data.Group
 import app.regimen.data.Habit
 import app.regimen.data.Page
@@ -123,7 +118,6 @@ fun RecurringOnClickEdit(recurringReminder: RecurringReminder) {
 }
 
 @Composable
-
 fun SingleTimeOnClickEdit(singleTimeReminder: SingleTimeReminder) {
     val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
     val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
@@ -145,7 +139,6 @@ fun SingleTimeOnClickEdit(singleTimeReminder: SingleTimeReminder) {
 }
 
 @Composable
-
 fun PageOnClickView(page: Page, group: Group) {
     ViewPage(
         title = page.title,
@@ -234,29 +227,37 @@ fun ReminderForList(reminder: Reminder, displayGroup: Boolean) {
             completeOnClick = {
                 when (reminder) {
                     is Habit -> { // Increment based on increment type, increase streak
-                        if (reminder.customPeriodEnabled) {
-                            reminder.localDateTime = reminder.localDateTime
-                                .plusDays(reminder.recurringPeriod.toLong())
-                        } else {
-                            reminder.localDateTime = getNextOccurrenceOfDay(
-                                reminder.localDateTime, reminder.recurringDay
-                            )
-                        }
+                        val localDateTime =
+                            if (reminder.customPeriodEnabled) {
+                                reminder.localDateTime
+                                    .plusDays(reminder.recurringPeriod.toLong())
+                            } else {
+                                getNextOccurrenceOfDay(
+                                    reminder.localDateTime, reminder.recurringDay
+                                )
+                            }
+
+                        // Check if it was late
+                        var streakActive = reminder.streakActive
+                        var streakHighest = reminder.streakHighest
 
                         val dateTime: LocalDateTime = reminder.localDateTime
                         val now: LocalDateTime = LocalDateTime.now()
                         val late = dateTime.isBefore(now)
                         if (late) {
-                            reminder.streakActive = 1
+                            streakActive = 1
                         } else {
-                            reminder.streakActive += 1
-                            if (reminder.streakActive > reminder.streakHighest) {
-                                reminder.streakHighest = reminder.streakActive
+                            streakActive += 1
+                            if (streakActive > streakHighest) {
+                                streakHighest = streakActive
                             }
                         }
 
+                        val updatedReminder = reminder.copy(localDateTime = localDateTime,
+                            streakActive = streakActive, streakHighest = streakHighest)
+
                         CoroutineScope(Dispatchers.IO).launch {
-                            habitDao.update(reminder)
+                            habitDao.update(updatedReminder)
                         }
 
                         Toast.makeText(
@@ -267,17 +268,20 @@ fun ReminderForList(reminder: Reminder, displayGroup: Boolean) {
                     }
 
                     is RecurringReminder -> { // Increment based on increment type
-                        if (reminder.customPeriodEnabled) {
-                            reminder.localDateTime = reminder.localDateTime
-                                .plusDays(reminder.recurringPeriod.toLong())
-                        } else {
-                            reminder.localDateTime = getNextOccurrenceOfDay(
-                                reminder.localDateTime, reminder.recurringDay
-                            )
-                        }
+                        val localDateTime =
+                            if (reminder.customPeriodEnabled) {
+                                reminder.localDateTime
+                                    .plusDays(reminder.recurringPeriod.toLong())
+                            } else {
+                                getNextOccurrenceOfDay(
+                                    reminder.localDateTime, reminder.recurringDay
+                                )
+                            }
+
+                        val updatedReminder = reminder.copy(localDateTime = localDateTime)
 
                         CoroutineScope(Dispatchers.IO).launch {
-                            recurringReminderDao.update(reminder)
+                            recurringReminderDao.update(updatedReminder)
                         }
 
                         Toast.makeText(

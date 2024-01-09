@@ -3,7 +3,6 @@ package app.regimen.di
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -20,8 +19,6 @@ class PreferenceDataStore @Inject constructor(@ApplicationContext private val co
         var themeRadioPref = stringPreferencesKey("THEME_RADIO")
         var isDarkTheme = booleanPreferencesKey("IS_DARK_THEME")
 
-        var passcodeSwitchPref = booleanPreferencesKey("PASSCODE_SWITCH")
-        var passcodeDigits = intPreferencesKey("PASSCODE_DIGITS")
     }
 
     private var pref = context.dataStore
@@ -47,28 +44,6 @@ class PreferenceDataStore @Inject constructor(@ApplicationContext private val co
 
     fun getIsDarkTheme() = pref.data.map {
         it[isDarkTheme]?:false
-    }
-
-    //Passcode switch
-    suspend fun setPasscodeSwitch(passcodeSwitch : Boolean) {
-        pref.edit {
-            it[passcodeSwitchPref] = passcodeSwitch
-        }
-    }
-
-    fun getPasscodeSwitch() = pref.data.map {
-        it[passcodeSwitchPref]?:false
-    }
-
-    //Passcode digits
-    suspend fun setPasscodeDigits(passcode : Int) {
-        pref.edit {
-            it[passcodeDigits] = passcode
-        }
-    }
-
-    fun getPasscodeDigits() = pref.data.map {
-        it[passcodeDigits]?:-1
     }
 
 }

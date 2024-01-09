@@ -1,11 +1,8 @@
 package app.regimen.screens
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,8 +18,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
@@ -37,8 +32,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Button
@@ -49,7 +42,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -66,20 +58,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.regimen.DynamicScaffoldState
-import app.regimen.MissingGroups
 import app.regimen.NoPages
 import app.regimen.PageForList
 import app.regimen.PageOnClickEdit
 import app.regimen.PageOnClickView
-import app.regimen.ReminderOnClickView
-import app.regimen.SheetContent
-import app.regimen.data.Group
 import app.regimen.data.Page
 import app.regimen.formatLocalDateTime
 import app.regimen.groupDao
@@ -93,7 +80,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 // Used to sort by selection
 lateinit var setSelectedOptionText: (String) -> Unit
@@ -141,9 +127,7 @@ fun PagesScreen(
 
         // Search bar for pages
         AnimatedVisibility(
-            visible = staggeredListFirstVisible,
-            enter = expandVertically(),
-            exit = shrinkVertically()
+            visible = staggeredListFirstVisible
         ) {
             PageSearchBar()
         }
@@ -229,7 +213,9 @@ fun SortExpandable() {
             },
             trailingIcon = {
                 Icon(
-                    modifier = Modifier.rotate(animateFloatAsState(if (expanded) 180f else 0f).value),
+                    modifier = Modifier.rotate(animateFloatAsState(if (expanded) 180f else 0f,
+                        label = ""
+                    ).value),
                     imageVector = Icons.Default.ArrowDropDown,
                     contentDescription = null
                 )},
@@ -332,7 +318,7 @@ fun PageSearchBar() {
                 imageVector = Icons.Default.Search,
                 contentDescription = null,
                 modifier = Modifier
-                    .size(animateDpAsState(if (active) 25.dp else 20.dp).value)
+                    .size(animateDpAsState(if (active) 25.dp else 20.dp, label = "").value)
             )
         },
         trailingIcon = {

@@ -1,6 +1,5 @@
 package app.regimen.screens
 
-import android.graphics.drawable.Icon
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Left
@@ -28,27 +27,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
-import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -71,34 +65,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import app.regimen.BottomBarScreen
 import app.regimen.ColorsEnum
 import app.regimen.DynamicScaffoldState
 import app.regimen.GroupForList
-import app.regimen.HabitOnClickEdit
 import app.regimen.IconsEnum
 import app.regimen.NoGroups
-import app.regimen.NoPages
 import app.regimen.PageForList
-import app.regimen.PageOnClickEdit
-import app.regimen.PageOnClickView
-import app.regimen.RecurringOnClickEdit
 import app.regimen.ReminderForList
-import app.regimen.ReminderOnClickView
-import app.regimen.SheetContent
-import app.regimen.SingleTimeOnClickEdit
 import app.regimen.data.Group
-import app.regimen.data.Habit
-import app.regimen.data.Page
-import app.regimen.data.RecurringReminder
-import app.regimen.data.Reminder
-import app.regimen.data.SingleTimeReminder
 import app.regimen.fadingEdge
-import app.regimen.formatLocalDateTime
 import app.regimen.groupDao
 import app.regimen.habitDao
 import app.regimen.pageDao
@@ -106,15 +84,10 @@ import app.regimen.raiseSheet
 import app.regimen.recurringReminderDao
 import app.regimen.setSheetVisibility
 import app.regimen.singleTimeReminderDao
-import app.regimen.validateGroupSelection
 import app.regimen.validateTitleAndDescription
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
 // Used to filter by group
 lateinit var setSelectedGroupId: (Int) -> Unit
@@ -202,7 +175,9 @@ fun GroupTabs() {
                             bottomEnd = 0.dp,
                             bottomStart = 0.dp,
                         ),
-                        width = animateDpAsState(if (state == GroupTabsEnum.Reminders) 80.dp else 50.dp).value
+                        width = animateDpAsState(if (state == GroupTabsEnum.Reminders) 80.dp else 50.dp,
+                            label = ""
+                        ).value
                     )
                 }
             },
@@ -262,7 +237,7 @@ fun AnimatedTabContent(state: GroupTabsEnum) {
                     }
                 )
             )
-        }
+        }, label = ""
     )
 }
 
@@ -287,7 +262,7 @@ fun toggleableTextButton(): Boolean {
         )
         Icon(
             modifier = Modifier
-                .rotate(animateFloatAsState(if (isClicked) 180f else 0f).value)
+                .rotate(animateFloatAsState(if (isClicked) 180f else 0f, label = "").value)
                 .size(ButtonDefaults.IconSize),
             imageVector = Icons.Default.KeyboardArrowDown,
             contentDescription = null,
@@ -425,7 +400,7 @@ fun GroupItem(name: String, iconId: Int, colorId: Int, selected: Boolean,
 
     Box(
         modifier = Modifier
-            .size(animateDpAsState(if (selected) 150.dp else 140.dp).value)
+            .size(animateDpAsState(if (selected) 150.dp else 140.dp, label = "").value)
             .clip(RoundedCornerShape(16.dp)) // allows ripple to match shape
             .background(
                 color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
@@ -469,7 +444,9 @@ fun ExpandableGroupList(isVisible: Boolean) {
 
     val selectedGroupId = getSelectedGroupId()
     val targetHeight = if (isVisible) 130.dp else 0.dp
-    val animatedHeight by animateDpAsState(targetValue = targetHeight, animationSpec = spring(dampingRatio = 3f))
+    val animatedHeight by animateDpAsState(targetValue = targetHeight, animationSpec = spring(dampingRatio = 3f),
+        label = ""
+    )
 
     val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.02f to Color.Red, 0.98f to Color.Red, 1f to Color.Transparent)
 
@@ -632,8 +609,8 @@ fun ColorPicker(color: Int, setColor: (Int) -> Unit) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(ColorsEnum.values()) { customColor ->
                 val isSelected = color == customColor.intValue
-                val alpha = animateFloatAsState(if (isSelected) 1f else 0.4f).value
-                val roundedShape = animateDpAsState(if (isSelected) 50.dp else 10.dp).value
+                val alpha = animateFloatAsState(if (isSelected) 1f else 0.4f, label = "").value
+                val roundedShape = animateDpAsState(if (isSelected) 50.dp else 10.dp, label = "").value
 
                 Box(
                     modifier = Modifier
@@ -666,8 +643,8 @@ fun IconPicker(icon: Int, setIcon: (Int) -> Unit) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(IconsEnum.values()) { customIcon ->
                 val isSelected = icon == customIcon.intValue
-                val alpha = animateFloatAsState(if (isSelected) 1f else 0.4f).value
-                val roundedShape = animateDpAsState(if (isSelected) 50.dp else 10.dp).value
+                val alpha = animateFloatAsState(if (isSelected) 1f else 0.4f, label = "").value
+                val roundedShape = animateDpAsState(if (isSelected) 50.dp else 10.dp, label = "").value
 
                 Box(
                     modifier = Modifier

@@ -1,6 +1,5 @@
 package app.regimen
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Spring
@@ -46,7 +45,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -57,7 +55,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
@@ -69,13 +66,8 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -90,15 +82,10 @@ import app.regimen.data.HabitDao
 import app.regimen.data.PageDao
 import app.regimen.data.RecurringReminderDao
 import app.regimen.data.SingleTimeReminderDao
-import app.regimen.screens.CreateGroup
-import app.regimen.screens.CreatePage
 import app.regimen.screens.GroupsScreen
 import app.regimen.screens.HomeScreen
 import app.regimen.screens.PagesScreen
 import app.regimen.screens.SettingsScreen
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -193,7 +180,7 @@ fun MainScreen(db: AppDatabase) {
                 }
             }
         }
-    ) {
+    ) { padding ->
         // Bottom sheet controlled by screens
         if (sheetVisibility) {
             ModalBottomSheet(
@@ -225,14 +212,14 @@ fun MainScreen(db: AppDatabase) {
         NavHost(
             navController = navController,
             startDestination = BottomBarScreen.Home.route,
-            modifier = Modifier.padding(it)
+            modifier = Modifier.padding(padding)
         ) {
             composable(
                 route = BottomBarScreen.Home.route,
             ) {
                 HomeScreen(
-                    onComposing = {
-                        dynamicScaffoldState = it
+                    onComposing = { dynamic ->
+                        dynamicScaffoldState = dynamic
                     }
                 )
             }
@@ -240,8 +227,8 @@ fun MainScreen(db: AppDatabase) {
                 route = BottomBarScreen.Pages.route
             ) {
                 PagesScreen(
-                    onComposing = {
-                        dynamicScaffoldState = it
+                    onComposing = { dynamic ->
+                        dynamicScaffoldState = dynamic
                     }
                 )
             }
@@ -249,8 +236,8 @@ fun MainScreen(db: AppDatabase) {
                 route = BottomBarScreen.Groups.route
             ) {
                 GroupsScreen(
-                    onComposing = {
-                        dynamicScaffoldState = it
+                    onComposing = { dynamic ->
+                        dynamicScaffoldState = dynamic
                     }
                 )
             }
@@ -269,7 +256,9 @@ fun MainScreen(db: AppDatabase) {
         val interactionSource = remember { MutableInteractionSource() }
         Box(modifier = Modifier
             .fillMaxSize()
-            .background(color = Color.Black.copy(alpha = animateFloatAsState(if (toggledFocusDim) 0.18f else 0f).value))
+            .background(color = Color.Black.copy(alpha = animateFloatAsState(if (toggledFocusDim) 0.18f else 0f,
+                label = ""
+            ).value))
             .then(if (toggledFocusDim) Modifier.clickableWithoutRipple(interactionSource = interactionSource) {
                 toggledFocusDim = false
             } else Modifier)
@@ -282,7 +271,7 @@ fun MainScreen(db: AppDatabase) {
 fun CustomFloatingActionButton(
     expandable: Boolean,
     onFabClick: () -> Unit,
-    fabBoxContent: @Composable() (BoxScope.(Boolean) -> Unit),
+    fabBoxContent: @Composable (BoxScope.(Boolean) -> Unit),
     fabIcon: ImageVector,
     toggledFocusDim: Boolean,
     showBottomSheet: Boolean,
@@ -303,11 +292,11 @@ fun CustomFloatingActionButton(
     val fabSize = 68.dp
     val expandedFabWidth by animateDpAsState(
         targetValue = if (isExpanded) 200.dp else fabSize,
-        animationSpec = spring(dampingRatio = 3f)
+        animationSpec = spring(dampingRatio = 3f), label = ""
     )
     val expandedFabHeight by animateDpAsState(
         targetValue = if (isExpanded) 58.dp else fabSize,
-        animationSpec = spring(dampingRatio = 4f)
+        animationSpec = spring(dampingRatio = 4f), label = ""
     )
 
     Column {
@@ -319,7 +308,7 @@ fun CustomFloatingActionButton(
                     width = expandedFabWidth,
                     height = (animateDpAsState(
                         if (isExpanded) 200.dp else 0.dp,
-                        animationSpec = spring(dampingRatio = 4f)
+                        animationSpec = spring(dampingRatio = 4f), label = ""
                     )).value
                 )
                 .background(
@@ -352,8 +341,8 @@ fun CustomFloatingActionButton(
                     .size(26.dp)
                     .offset(
                         x = animateDpAsState(
-                            if (isExpanded) -70.dp else 0.dp,
-                            animationSpec = spring(dampingRatio = 3f)
+                            if (isExpanded) (-70).dp else 0.dp,
+                            animationSpec = spring(dampingRatio = 3f), label = ""
                         ).value
                     )
             )
@@ -365,7 +354,7 @@ fun CustomFloatingActionButton(
                     .offset(
                         x = animateDpAsState(
                             if (isExpanded) 10.dp else 50.dp,
-                            animationSpec = spring(dampingRatio = 3f)
+                            animationSpec = spring(dampingRatio = 3f), label = ""
                         ).value
                     )
                     .alpha(
@@ -375,7 +364,7 @@ fun CustomFloatingActionButton(
                                 durationMillis = if (isExpanded) 400 else 100,
                                 delayMillis = if (isExpanded) 100 else 0,
                                 easing = EaseIn
-                            )
+                            ), label = ""
                         ).value
                     )
             )
@@ -401,7 +390,7 @@ fun RemindMeRow(icon: ImageVector, text: String, isExpanded: Boolean, onClick: (
                         durationMillis = if (isExpanded) 400 else 100,
                         delayMillis = if (isExpanded) enterDelay else 0,
                         easing = EaseIn
-                    )
+                    ), label = ""
                 ).value
             )
     ) {
@@ -507,7 +496,9 @@ fun CustomNavBar(
                 val isSelected = currentDestination?.hierarchy?.any {
                     it.route == screen.route
                 } == true
-                val animatedWeight by animateFloatAsState(targetValue = if (isSelected) 1.5f else 1f)
+                val animatedWeight by animateFloatAsState(targetValue = if (isSelected) 1.5f else 1f,
+                    label = ""
+                )
                 Box(
                     modifier = Modifier.weight(animatedWeight),
                     contentAlignment = Alignment.Center,
@@ -553,7 +544,7 @@ fun FlipIcon(
         animationSpec = spring(
             stiffness = Spring.StiffnessLow,
             dampingRatio = Spring.DampingRatioMediumBouncy
-        )
+        ), label = ""
     )
 
     // Determine icon color based on Material Theme
@@ -579,15 +570,19 @@ private fun CustomNavBarItem(
     screen: BottomBarScreen,
     isSelected: Boolean
 ) {
-    val animatedHeight by animateDpAsState(targetValue = if (isSelected) 36.dp else 26.dp)
-    val animatedElevation by animateDpAsState(targetValue = if (isSelected) 15.dp else 0.dp)
-    val animatedAlpha by animateFloatAsState(targetValue = if (isSelected) 1f else .5f)
+    val animatedHeight by animateDpAsState(targetValue = if (isSelected) 36.dp else 26.dp,
+        label = ""
+    )
+    val animatedElevation by animateDpAsState(targetValue = if (isSelected) 15.dp else 0.dp,
+        label = ""
+    )
+    val animatedAlpha by animateFloatAsState(targetValue = if (isSelected) 1f else .5f, label = "")
     val animatedIconSize by animateDpAsState(
         targetValue = if (isSelected) 26.dp else 20.dp,
         animationSpec = spring(
             stiffness = Spring.StiffnessLow,
             dampingRatio = Spring.DampingRatioMediumBouncy
-        )
+        ), label = ""
     )
 
     Box(

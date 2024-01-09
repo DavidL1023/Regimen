@@ -1,6 +1,5 @@
 package app.regimen.data
 
-import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.LocalDateTime
@@ -10,10 +9,10 @@ data class Group(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
 
-    var title: String = "",
-    var description: String = "",
-    var color: Int = 0, //Color is assigned as integer to be decoded later
-    var icon: Int = 0 //Same with icon
+    val title: String = "",
+    val description: String = "",
+    val color: Int = 0, //Color is assigned as integer to be decoded later
+    val icon: Int = 0 //Same with icon
 )
 
 interface Reminder {
@@ -28,47 +27,47 @@ interface Reminder {
 @Entity(tableName = "single time reminders")
 data class SingleTimeReminder(
     @PrimaryKey(autoGenerate = true)
-    override var id: Int = 0,
+    override val id: Int = 0,
 
-    override var title: String = "",
-    override var groupId: Int = 0,
-    override var specificTimeEnabled: Boolean = false,
-    override var localDateTime: LocalDateTime = LocalDateTime.now(),
-    override var description: String = ""
+    override val title: String = "",
+    override val groupId: Int = 0,
+    override val specificTimeEnabled: Boolean = false,
+    override val localDateTime: LocalDateTime = LocalDateTime.now(),
+    override val description: String = ""
 ) : Reminder
 
 @Entity(tableName = "recurring reminders")
 data class RecurringReminder(
     @PrimaryKey(autoGenerate = true)
-    override var id: Int = 0,
+    override val id: Int = 0,
 
-    override var title: String = "",
-    override var groupId: Int = 0,
-    override var specificTimeEnabled: Boolean = false,
-    override var localDateTime: LocalDateTime = LocalDateTime.now(),
-    override var description: String = "",
+    override val title: String = "",
+    override val groupId: Int = 0,
+    override val specificTimeEnabled: Boolean = false,
+    override val localDateTime: LocalDateTime = LocalDateTime.now(),
+    override val description: String = "",
 
-    var customPeriodEnabled: Boolean = false,
-    var recurringPeriod: Int = 0,
-    var recurringDay: String = ""
+    val customPeriodEnabled: Boolean = false,
+    val recurringPeriod: Int = 0,
+    val recurringDay: String = ""
 ) : Reminder
 
 @Entity(tableName = "habits")
 data class Habit(
     @PrimaryKey(autoGenerate = true)
-    override var id: Int = 0,
+    override val id: Int = 0,
 
-    override var title: String = "",
-    override var groupId: Int = 0,
-    override var specificTimeEnabled: Boolean = false,
-    override var localDateTime: LocalDateTime = LocalDateTime.now(),
-    override var description: String = "",
+    override val title: String = "",
+    override val groupId: Int = 0,
+    override val specificTimeEnabled: Boolean = false,
+    override val localDateTime: LocalDateTime = LocalDateTime.now(),
+    override val description: String = "",
 
-    var customPeriodEnabled: Boolean = false,
-    var recurringPeriod: Int = 0,
-    var recurringDay: String = "",
-    var streakActive: Int = 0,
-    var streakHighest: Int = 0
+    val customPeriodEnabled: Boolean = false,
+    val recurringPeriod: Int = 0,
+    val recurringDay: String = "",
+    val streakActive: Int = 0,
+    val streakHighest: Int = 0
 ) : Reminder
 
 @Entity(tableName = "pages")
@@ -76,9 +75,9 @@ data class Page(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
 
-    var title: String = "",
-    var groupId: Int = 0,
-    var body: String = "",
-    var dateTimeModified: LocalDateTime = LocalDateTime.now(),
+    val title: String = "",
+    val groupId: Int = 0,
+    val body: String = "",
+    val dateTimeModified: LocalDateTime = LocalDateTime.now(),
     val dateTimeCreated: LocalDateTime = LocalDateTime.now()
 )

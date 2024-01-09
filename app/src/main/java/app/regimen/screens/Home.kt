@@ -1,11 +1,8 @@
 package app.regimen.screens
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,10 +34,8 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircleOutline
 import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Whatshot
@@ -55,12 +50,10 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
-import androidx.compose.material3.LocalMinimumTouchTargetEnforcement
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -76,7 +69,6 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -99,19 +91,11 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.text.isDigitsOnly
 import app.regimen.ColorsEnum
 import app.regimen.DynamicScaffoldState
-import app.regimen.HabitOnClickEdit
 import app.regimen.IconsEnum
-import app.regimen.MissingGroups
 import app.regimen.NoReminders
-import app.regimen.RecurringOnClickEdit
 import app.regimen.RemindMeRow
 import app.regimen.ReminderForList
-import app.regimen.ReminderOnClickView
-import app.regimen.SheetContent
-import app.regimen.SingleTimeOnClickEdit
-import app.regimen.data.Group
 import app.regimen.data.Habit
-import app.regimen.data.Page
 import app.regimen.data.RecurringReminder
 import app.regimen.data.Reminder
 import app.regimen.data.SingleTimeReminder
@@ -119,7 +103,6 @@ import app.regimen.fadingEdge
 import app.regimen.formatLocalDateTime
 import app.regimen.groupDao
 import app.regimen.habitDao
-import app.regimen.pageDao
 import app.regimen.raiseSheet
 import app.regimen.recurringReminderDao
 import app.regimen.setSheetVisibility
@@ -131,10 +114,6 @@ import app.regimen.validateTimeAndDate
 import app.regimen.validateTitleAndDescription
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.forEach
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.DayOfWeek
@@ -214,9 +193,7 @@ fun HomeScreen(
 
         // Horizontal scroll for calendar filter
         AnimatedVisibility(
-            visible = listFirstVisible,
-            enter = expandVertically(),
-            exit = shrinkVertically()
+            visible = listFirstVisible
         ) {
             CalendarFilterChips()
         }
@@ -547,7 +524,7 @@ private fun VerticalChip(
                 shape = RoundedCornerShape(14.dp)
             )
             .padding(9.dp)
-            .height(animateDpAsState(if (isSelected) 62.dp else 52.dp).value),
+            .height(animateDpAsState(if (isSelected) 62.dp else 52.dp, label = "").value),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -1233,7 +1210,6 @@ fun CreateTitleAndDescription(
 }
 
 // Recurring area
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateRecurringSelector(
     recurringPeriod: String,
@@ -1590,7 +1566,7 @@ fun ViewReminder(type: String, title: String, description: String, localDateTime
                 )
 
                 if (habitMode) {
-                    Column () {
+                    Column {
 
                         Row( // Highest habit streak visual
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
