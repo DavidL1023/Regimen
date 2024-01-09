@@ -244,7 +244,7 @@ fun AnimatedTabContent(state: GroupTabsEnum) {
 // Return clicked boolean to enable / disable
 @Composable
 fun toggleableTextButton(): Boolean {
-    var isClicked by remember { mutableStateOf(false) }
+    var isClicked by remember { mutableStateOf(true) }
 
     TextButton(
         modifier = Modifier
@@ -599,6 +599,8 @@ fun CreateGroup(setTitle: String = "", setDescription: String = "", setColor: In
 
 @Composable
 fun ColorPicker(color: Int, setColor: (Int) -> Unit) {
+    val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.01f to Color.Red, 0.99f to Color.Red, 1f to Color.Transparent)
+
     Column {
         Text(
             text = "Select Color",
@@ -606,7 +608,13 @@ fun ColorPicker(color: Int, setColor: (Int) -> Unit) {
             modifier = Modifier.padding(bottom = 3.dp)
         )
 
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fadingEdge(leftRightFade)) {
+
+            item {
+                Spacer(modifier = Modifier.width(1.dp))
+            }
+
             items(ColorsEnum.values()) { customColor ->
                 val isSelected = color == customColor.intValue
                 val alpha = animateFloatAsState(if (isSelected) 1f else 0.4f, label = "").value
@@ -627,12 +635,18 @@ fun ColorPicker(color: Int, setColor: (Int) -> Unit) {
                         }
                 )
             }
+
+            item {
+                Spacer(modifier = Modifier.width(1.dp))
+            }
         }
     }
 }
 
 @Composable
 fun IconPicker(icon: Int, setIcon: (Int) -> Unit) {
+    val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.01f to Color.Red, 0.99f to Color.Red, 1f to Color.Transparent)
+
     Column {
         Text(
             text = "Select Icon",
@@ -640,7 +654,13 @@ fun IconPicker(icon: Int, setIcon: (Int) -> Unit) {
             modifier = Modifier.padding(bottom = 3.dp)
         )
 
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fadingEdge(leftRightFade)) {
+
+            item {
+                Spacer(modifier = Modifier.width(1.dp))
+            }
+
             items(IconsEnum.values()) { customIcon ->
                 val isSelected = icon == customIcon.intValue
                 val alpha = animateFloatAsState(if (isSelected) 1f else 0.4f, label = "").value
@@ -667,6 +687,10 @@ fun IconPicker(icon: Int, setIcon: (Int) -> Unit) {
                         contentDescription = null
                     )
                 }
+            }
+
+            item {
+                Spacer(modifier = Modifier.width(1.dp))
             }
         }
     }

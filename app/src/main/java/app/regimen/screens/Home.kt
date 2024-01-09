@@ -291,7 +291,39 @@ fun getUniqueKey(reminder: Reminder): String {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LazyReminderColumn(lazyListState: LazyListState, combinedReminders: List<Reminder>) {
-    val sortedReminders = combinedReminders.sortedBy { it.localDateTime }
+    val sortedFilteredReminders = combinedReminders
+        .filter { reminder ->
+            // Determine the reminder type
+            val reminderType = when (reminder) {
+                is SingleTimeReminder -> "Single Time"
+                is RecurringReminder -> "Recurring"
+                is Habit -> "Habit"
+                else -> "Unknown"
+            }
+
+            // Get the reminder date
+            val reminderDate = reminder.localDateTime.toLocalDate()
+
+            // Check if it passes the segment filter
+            val passesSegmentFilter = when (getSelectedSegmentText()) {
+                "All" -> true
+                "Repeating" -> reminderType == "Habit" || reminderType == "Recurring"
+                "Single Time" -> reminderType == "Single Time"
+                else -> true
+            }
+
+            // Check if it passes the chip date filter
+            val chipDate = getSelectedChipDate()
+            val passesChipDateFilter = chipDate?.let { reminderDate == it } ?: true
+
+            // Include in the filtered list if it passes both filters
+            passesSegmentFilter && passesChipDateFilter
+        }
+        .sortedBy { it.localDateTime }
+
+    if (sortedFilteredReminders.isEmpty()) {
+        NoReminders()
+    }
 
     LazyColumn(
         state = lazyListState,
@@ -304,32 +336,10 @@ fun LazyReminderColumn(lazyListState: LazyListState, combinedReminders: List<Rem
             Spacer(modifier = Modifier.height(1.dp))
         }
 
-        items(sortedReminders, key = { reminder -> getUniqueKey(reminder) }) { reminder ->
-            val reminderType = when (reminder) {
-                is SingleTimeReminder -> "Single Time"
-                is RecurringReminder -> "Recurring"
-                is Habit -> "Habit"
-                else -> "Unknown"
-            }
+        items(sortedFilteredReminders, key = { reminder -> getUniqueKey(reminder) }) { reminder ->
 
-            val reminderDate = reminder.localDateTime.toLocalDate()
-
-            val passesSegmentFilter = when (getSelectedSegmentText()) {
-                "All" -> true
-                "Repeating" -> reminderType == "Habit" || reminderType == "Recurring"
-                "Single Time" -> reminderType == "Single Time"
-                else -> true
-            }
-
-            val chipDate = getSelectedChipDate()
-            val passesChipDateFilter =
-                chipDate?.let { reminderDate == getSelectedChipDate() }
-                    ?: true
-
-            if (passesSegmentFilter && passesChipDateFilter) {
-                Box(modifier = Modifier.animateItemPlacement()) {
-                    ReminderForList(reminder, true)
-                }
+            Box(modifier = Modifier.animateItemPlacement()) {
+                ReminderForList(reminder, true)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -1114,6 +1124,7 @@ fun CreateSingleTime(setTitle: String = "", setDescription: String = "", setDate
 @Composable
 fun CreateGroupSelector(groupId: Int, setGroup: (Int) -> Unit) {
     val groupList by groupDao.getAllGroups().collectAsState(initial = emptyList())
+    val leftRightFade = Brush.horizontalGradient(0f to Color.Transparent, 0.01f to Color.Red, 0.99f to Color.Red, 1f to Color.Transparent)
 
     Column {
         Text(
@@ -1121,7 +1132,13 @@ fun CreateGroupSelector(groupId: Int, setGroup: (Int) -> Unit) {
             style = MaterialTheme.typography.bodyMedium
         )
 
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fadingEdge(leftRightFade)) {
+
+            item {
+                Spacer(modifier = Modifier.width(1.dp))
+            }
+
             items(groupList) { group ->
                 val isSelected = group.id == groupId
                 val imageVector = IconsEnum.iconFromIntValue(group.icon)
@@ -1150,6 +1167,11 @@ fun CreateGroupSelector(groupId: Int, setGroup: (Int) -> Unit) {
                 }
 
             }
+
+            item {
+                Spacer(modifier = Modifier.width(1.dp))
+            }
+
         }
 
     }

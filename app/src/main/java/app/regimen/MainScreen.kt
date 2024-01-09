@@ -596,11 +596,11 @@ private fun CustomNavBarItem(
                 .height(animatedHeight)
                 .shadow(
                     elevation = animatedElevation,
-                    shape = RoundedCornerShape(20.dp)
+                    shape = RoundedCornerShape(18.dp)
                 )
                 .background(
                     color = MaterialTheme.colorScheme.surface,
-                    shape = RoundedCornerShape(20.dp)
+                    shape = RoundedCornerShape(18.dp)
                 ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
@@ -609,7 +609,7 @@ private fun CustomNavBarItem(
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
                     .fillMaxHeight()
-                    .padding(start = 11.dp)
+                    .padding(start = 10.dp)
                     .alpha(animatedAlpha)
                     .size(animatedIconSize),
                 isActive = isSelected,
@@ -621,7 +621,7 @@ private fun CustomNavBarItem(
             AnimatedVisibility(visible = isSelected) {
                 Text(
                     text = screen.title,
-                    modifier = Modifier.padding(start = 8.dp, end = 10.dp),
+                    modifier = Modifier.padding(start = 4.dp, end = 12.dp),
                     maxLines = 1
                 )
             }
