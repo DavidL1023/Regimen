@@ -8,6 +8,8 @@ Seamlessly blends reminders, habit tracking, note-taking, and organization into 
 
 ## Install
 Android studio used for development,
-You can clone it to the android studio IDE, I had an APK prepared but got lazy half way through setting up a public link to it
+You can clone it to the android studio IDE
+
+[APK](https://drive.google.com/file/d/1Ud7rKavuo0MqXsRpzkYIM6vPWka9J-p2/view?usp=sharing) Download to android device
 
 https://github.com/DavidL1023/Regimen/assets/80372643/75fae02d-45c4-4e35-8a4a-81e76671252c
